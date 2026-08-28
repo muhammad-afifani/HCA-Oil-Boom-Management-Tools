@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { AppDatabase, AppSettings, LoanRequest, MapLocation, StockBatch } from '../types'
+import type { AppDatabase, AppSettings, LoanRequest, MapLocation, PriorityMode, StockBatch } from '../types'
 import { buildSeedDatabase } from '../data/seed'
 import { makeId } from '../lib/id'
+import { computeAutoOrderIds } from '../lib/priority'
 
 interface StoreState {
   db: AppDatabase
@@ -27,6 +28,11 @@ interface StoreState {
   replaceDatabase: (db: AppDatabase) => void
   resetToSeedData: () => void
   clearAllData: () => void
+
+  // Priority ranking
+  setPriorityMode: (mode: PriorityMode) => void
+  setPriorityOrder: (order: string[]) => void
+  resetPriorityOrder: () => void
 }
 
 const EMPTY_DB: AppDatabase = {
@@ -128,6 +134,22 @@ export const useStore = create<StoreState>()(
       replaceDatabase: (db) => set({ db }),
       resetToSeedData: () => set({ db: buildSeedDatabase() }),
       clearAllData: () => set({ db: EMPTY_DB }),
+
+      setPriorityMode: (mode) =>
+        set((s) => ({
+          db: {
+            ...s.db,
+            priorityMode: mode,
+            // Seed manual order from the current auto ranking the first time so the list doesn't jump.
+            priorityOrder:
+              mode === 'manual' && (!s.db.priorityOrder || s.db.priorityOrder.length === 0)
+                ? computeAutoOrderIds(s.db.loans)
+                : s.db.priorityOrder,
+          },
+        })),
+      setPriorityOrder: (order) => set((s) => ({ db: { ...s.db, priorityOrder: order } })),
+      resetPriorityOrder: () =>
+        set((s) => ({ db: { ...s.db, priorityOrder: computeAutoOrderIds(s.db.loans) } })),
     }),
     {
       name: 'hca-oil-boom-db',

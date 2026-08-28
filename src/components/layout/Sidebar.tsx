@@ -1,10 +1,11 @@
-import clsx from 'clsx'
-import { LayoutDashboard, MapPinned, ClipboardList, Boxes, DatabaseBackup, Waves } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { LayoutDashboard, MapPinned, ClipboardList, ListOrdered, Boxes, DatabaseBackup, Waves } from 'lucide-react'
 import type { PageKey } from '../../App'
 
 const items: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'map', label: 'Peta Lokasi', icon: MapPinned },
+  { key: 'priority', label: 'Prioritas', icon: ListOrdered },
   { key: 'loans', label: 'Peminjaman', icon: ClipboardList },
   { key: 'master', label: 'Master Data', icon: Boxes },
   { key: 'io', label: 'Import / Export', icon: DatabaseBackup },
@@ -23,21 +24,28 @@ export function Sidebar({ page, onNavigate }: { page: PageKey; onNavigate: (p: P
         </div>
       </div>
       <nav className="flex-1 space-y-1 px-3">
-        {items.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => onNavigate(key)}
-            className={clsx(
-              'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-              page === key
-                ? 'bg-teal-50 text-teal-700'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800',
-            )}
-          >
-            <Icon size={17} />
-            {label}
-          </button>
-        ))}
+        {items.map(({ key, label, icon: Icon }) => {
+          const active = page === key
+          return (
+            <button
+              key={key}
+              onClick={() => onNavigate(key)}
+              className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                active ? 'text-teal-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+              }`}
+            >
+              {active && (
+                <motion.span
+                  layoutId="sidebar-active-pill"
+                  className="absolute inset-0 rounded-xl bg-teal-50"
+                  transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                />
+              )}
+              <Icon size={17} className="relative" />
+              <span className="relative">{label}</span>
+            </button>
+          )
+        })}
       </nav>
       <div className="px-5 py-4 text-[11px] leading-relaxed text-slate-400">
         Data tersimpan lokal di browser ini. Gunakan menu Import/Export untuk backup rutin.

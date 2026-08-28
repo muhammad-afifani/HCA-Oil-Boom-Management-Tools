@@ -76,4 +76,10 @@ export interface AppDatabase {
   stockBatches: StockBatch[]
   loans: LoanRequest[]
   exportedAt?: string
+  /** 'auto' = ranked by computed urgency; 'manual' = user drag-reordered override. Optional for backward-compat with older exports. */
+  priorityMode?: PriorityMode
+  /** Loan IDs in manual rank order (only meaningful when priorityMode === 'manual'). */
+  priorityOrder?: string[]
 }
+
+export type PriorityMode = 'auto' | 'manual'
