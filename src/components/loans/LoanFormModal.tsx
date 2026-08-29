@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MapPin, CheckCircle2 } from 'lucide-react'
+import { MapPin, CheckCircle2, Plus } from 'lucide-react'
 import clsx from 'clsx'
 import { Modal } from '../ui/Modal'
 import { Field, inputClass } from '../ui/Field'
@@ -10,6 +10,8 @@ import type { LoanPriority, LoanRequest, LoanStatus } from '../../types'
 import { getNearestPosOptions } from '../../lib/nearestPos'
 import { formatDistance } from '../../lib/geo'
 import { todayISO } from '../../lib/date'
+import { loanStatusLabel } from '../../lib/inventory'
+import { LocationFormModal } from '../master/LocationFormModal'
 
 const STATUSES: LoanStatus[] = ['Pending', 'Disetujui', 'Aktif', 'Selesai', 'Dibatalkan']
 const PRIORITIES: LoanPriority[] = ['Normal', 'Tinggi', 'Urgent']
@@ -48,6 +50,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
   }, [db.loans])
 
   const [form, setForm] = useState(() => emptyForm(db.settings.defaultUnitLengthMeters, nextRequestNumber))
+  const [showNewSite, setShowNewSite] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -163,12 +166,24 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
         </div>
 
         <Field label="Lokasi Kerja (sumur/platform/cluster)" required>
-          <select className={inputClass} value={form.siteLocationId} onChange={(e) => { set('siteLocationId', e.target.value); set('sourcePosId', '') }}>
-            <option value="">Pilih lokasi kerja...</option>
-            {siteList.map((s) => (
-              <option key={s.id} value={s.id}>{s.name} ({s.type})</option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              className={inputClass}
+              value={form.siteLocationId}
+              onChange={(e) => { set('siteLocationId', e.target.value); set('sourcePosId', '') }}
+            >
+              <option value="">Pilih lokasi kerja...</option>
+              {siteList.map((s) => (
+                <option key={s.id} value={s.id}>{s.name} ({s.type})</option>
+              ))}
+            </select>
+            <Button type="button" size="md" onClick={() => setShowNewSite(true)} title="Lokasi belum ada di daftar? Tambahkan baru">
+              <Plus size={15} />
+            </Button>
+          </div>
+          {siteList.length === 0 && (
+            <span className="mt-1 block text-[11px] text-amber-600">Belum ada lokasi kerja terdaftar — klik tombol + untuk menambahkan.</span>
+          )}
         </Field>
         <Field label="Jumlah Unit Boom Dibutuhkan" required>
           <input type="number" min={1} className={inputClass} value={form.quantityUnits} onChange={(e) => set('quantityUnits', Number(e.target.value))} />
@@ -183,7 +198,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
 
         <Field label="Status">
           <select className={inputClass} value={form.status} onChange={(e) => set('status', e.target.value as LoanStatus)}>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            {STATUSES.map((s) => <option key={s} value={s}>{loanStatusLabel(s)}</option>)}
           </select>
         </Field>
         <Field label="Prioritas">
@@ -246,6 +261,16 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
           {loan ? 'Simpan Perubahan' : 'Buat Permintaan'}
         </Button>
       </div>
+
+      <LocationFormModal
+        open={showNewSite}
+        kind="site"
+        onClose={() => setShowNewSite(false)}
+        onCreated={(id) => {
+          set('siteLocationId', id)
+          set('sourcePosId', '')
+        }}
+      />
     </Modal>
   )
 }

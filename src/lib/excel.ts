@@ -2,11 +2,20 @@ import ExcelJS from 'exceljs'
 import type { AppDatabase, BoomCondition, LoanPriority, LoanRequest, LoanStatus, LocationType, MapLocation, StockBatch } from '../types'
 import { makeId } from './id'
 import { downloadBlob, dateStamp } from './jsonIO'
+import { loanStatusLabel } from './inventory'
 
 const LOCATION_TYPES: LocationType[] = ['pos', 'sumur', 'platform', 'cluster', 'lainnya']
 const CONDITIONS: BoomCondition[] = ['Baik', 'Rusak Ringan', 'Rusak Berat']
 const STATUSES: LoanStatus[] = ['Pending', 'Disetujui', 'Aktif', 'Selesai', 'Dibatalkan']
 const PRIORITIES: LoanPriority[] = ['Normal', 'Tinggi', 'Urgent']
+
+// Accepts both the human-friendly label shown in the app/Excel (e.g. "Sedang Dipakai")
+// and the raw internal value (e.g. "Aktif", for older exports) when parsing status back in.
+const STATUS_LABEL_TO_VALUE: Record<string, LoanStatus> = {}
+for (const s of STATUSES) {
+  STATUS_LABEL_TO_VALUE[loanStatusLabel(s).toLowerCase()] = s
+  STATUS_LABEL_TO_VALUE[s.toLowerCase()] = s
+}
 
 function headerRow(sheet: ExcelJS.Worksheet, headers: string[]) {
   const row = sheet.addRow(headers)
@@ -58,7 +67,7 @@ export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
     'ID', 'No Permintaan', 'Nama Peminta', 'Entity/Perusahaan', 'Ext', 'Fungsi Pekerjaan',
     'Deskripsi Pekerjaan', 'Lokasi Kerja Kode', 'Lokasi Kerja Nama', 'Pos Asal Kode', 'Pos Asal Nama',
     'Jumlah Unit', 'Panjang per Unit (m)', 'Tgl Request', 'Tgl Mulai', 'Tgl Selesai Rencana',
-    'Tgl Kembali Aktual', 'Status', 'Prioritas', 'Catatan',
+    'Tgl Kembali Aktual', 'Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)', 'Prioritas', 'Catatan',
   ])
   for (const l of db.loans) {
     const site = db.locations.find((x) => x.id === l.siteLocationId)
@@ -67,7 +76,7 @@ export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
       l.id, l.requestNumber, l.requesterName, l.entity, l.ext, l.boomFunction,
       l.workDescription, site?.code ?? '', site?.name ?? '', pos?.code ?? '', pos?.name ?? '',
       l.quantityUnits, l.unitLengthMeters, l.requestDate, l.startDate, l.endDate,
-      l.actualReturnDate ?? '', l.status, l.priority, l.notes ?? '',
+      l.actualReturnDate ?? '', loanStatusLabel(l.status), l.priority, l.notes ?? '',
     ])
   }
   wsLoan.columns.forEach((c) => (c.width = 18))
@@ -183,8 +192,8 @@ export async function importDatabaseFromExcel(file: File, current: AppDatabase):
       const siteId = findLocId(cellStr(row, 8), cellStr(row, 9), rowNumber, 'Peminjaman (lokasi kerja)')
       const posId = findLocId(cellStr(row, 10), cellStr(row, 11), rowNumber, 'Peminjaman (pos asal)')
       if (!siteId || !posId) return
-      const statusRaw = cellStr(row, 18) as LoanStatus
-      const status = STATUSES.includes(statusRaw) ? statusRaw : 'Pending'
+      const statusRaw = cellStr(row, 18)
+      const status = STATUS_LABEL_TO_VALUE[statusRaw.toLowerCase()] ?? 'Pending'
       const priorityRaw = cellStr(row, 19) as LoanPriority
       const priority = PRIORITIES.includes(priorityRaw) ? priorityRaw : 'Normal'
       const now = new Date().toISOString()
@@ -234,7 +243,7 @@ export async function downloadExcelTemplate(): Promise<void> {
     'ID', 'No Permintaan', 'Nama Peminta', 'Entity/Perusahaan', 'Ext', 'Fungsi Pekerjaan',
     'Deskripsi Pekerjaan', 'Lokasi Kerja Kode', 'Lokasi Kerja Nama', 'Pos Asal Kode', 'Pos Asal Nama',
     'Jumlah Unit', 'Panjang per Unit (m)', 'Tgl Request', 'Tgl Mulai', 'Tgl Selesai Rencana',
-    'Tgl Kembali Aktual', 'Status', 'Prioritas', 'Catatan',
+    'Tgl Kembali Aktual', 'Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)', 'Prioritas', 'Catatan',
   ])
   wsLoan.columns.forEach((c) => (c.width = 18))
 

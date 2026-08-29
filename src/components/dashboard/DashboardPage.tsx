@@ -7,7 +7,7 @@ import { StatCard } from '../ui/StatCard'
 import { Card, CardHeader } from '../ui/Card'
 import { Badge, loanStatusTone, priorityTone } from '../ui/Badge'
 import { Button } from '../ui/Button'
-import { effectiveLoanStatus, loanDaysRemaining, summarizeCompany, summarizePosStock } from '../../lib/inventory'
+import { effectiveLoanStatus, loanDaysRemaining, loanStatusLabel, summarizeCompany, summarizePosStock } from '../../lib/inventory'
 import { resolveOrderedLoans } from '../../lib/priority'
 import { formatDateID, todayISO } from '../../lib/date'
 import type { PageKey } from '../../App'
@@ -98,7 +98,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (p: PageKey) => void
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <Badge tone={loanStatusTone(status)}>{status}</Badge>
+                    <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
                     <span className={`text-xs ${days < 0 ? 'font-semibold text-red-600' : 'text-slate-400'}`}>
                       {days < 0 ? `Lewat ${Math.abs(days)} hari` : days === 0 ? 'Selesai hari ini' : `${days} hari lagi`}
                     </span>
@@ -174,7 +174,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (p: PageKey) => void
                       <td className="px-5 py-2.5 text-slate-600">{site?.name ?? '-'}</td>
                       <td className="px-5 py-2.5 text-slate-500">{formatDateID(loan.startDate)} - {formatDateID(loan.endDate)}</td>
                       <td className="px-5 py-2.5">
-                        <Badge tone={loanStatusTone(status)}>{status}</Badge>
+                        <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
                       </td>
                     </tr>
                   )

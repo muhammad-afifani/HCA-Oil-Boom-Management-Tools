@@ -7,7 +7,7 @@ import { Header } from '../layout/Header'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Badge, loanStatusTone, priorityTone } from '../ui/Badge'
-import { effectiveLoanStatus, loanDaysRemaining } from '../../lib/inventory'
+import { effectiveLoanStatus, loanDaysRemaining, loanStatusLabel } from '../../lib/inventory'
 import { resolveOrderedLoans } from '../../lib/priority'
 import { formatDateID } from '../../lib/date'
 import { LoanFormModal } from '../loans/LoanFormModal'
@@ -237,7 +237,7 @@ function PriorityRow({
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:hidden">
           <Badge tone={priorityTone(loan.priority)}>{loan.priority}</Badge>
-          <Badge tone={loanStatusTone(status)}>{status}</Badge>
+          <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
           <span className={clsx('text-xs', days < 0 ? 'font-semibold text-red-600' : days <= 2 ? 'font-semibold text-amber-600' : 'text-slate-400')}>
             {countdownLabel}
           </span>
@@ -247,7 +247,7 @@ function PriorityRow({
       <div className="hidden shrink-0 flex-col items-end gap-1 sm:flex">
         <div className="flex items-center gap-1.5">
           <Badge tone={priorityTone(loan.priority)}>{loan.priority}</Badge>
-          <Badge tone={loanStatusTone(status)}>{status}</Badge>
+          <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
         </div>
         <span className={clsx('text-xs', days < 0 ? 'font-semibold text-red-600' : days <= 2 ? 'font-semibold text-amber-600' : 'text-slate-400')}>
           {countdownLabel}

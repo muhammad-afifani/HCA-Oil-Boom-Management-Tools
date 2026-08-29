@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import { Plus, Search, Pencil, Trash2, CheckCircle2, PackageCheck, XCircle, ArrowUpDown } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { Header } from '../layout/Header'
@@ -6,7 +7,7 @@ import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Badge, loanStatusTone, priorityTone } from '../ui/Badge'
 import { inputClass } from '../ui/Field'
-import { effectiveLoanStatus, loanDaysRemaining } from '../../lib/inventory'
+import { effectiveLoanStatus, loanDaysRemaining, loanStatusLabel } from '../../lib/inventory'
 import { formatDateID, planDurationDays, todayISO } from '../../lib/date'
 import { LoanFormModal } from './LoanFormModal'
 import type { LoanRequest, LoanStatus } from '../../types'
@@ -14,6 +15,40 @@ import type { LoanRequest, LoanStatus } from '../../types'
 type SortKey = 'endDate' | 'requestDate' | 'startDate'
 
 const statusFilters: (LoanStatus | 'Terlambat' | 'Semua')[] = ['Semua', 'Pending', 'Disetujui', 'Aktif', 'Terlambat', 'Selesai', 'Dibatalkan']
+
+type ActionTone = 'teal' | 'blue' | 'emerald' | 'slate' | 'red'
+
+const actionToneClasses: Record<ActionTone, string> = {
+  teal: 'bg-teal-50 text-teal-700 hover:bg-teal-100 ring-teal-200',
+  blue: 'bg-blue-50 text-blue-700 hover:bg-blue-100 ring-blue-200',
+  emerald: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 ring-emerald-200',
+  slate: 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-slate-200',
+  red: 'bg-red-50 text-red-600 hover:bg-red-100 ring-red-200',
+}
+
+function ActionButton({
+  icon: Icon,
+  label,
+  tone,
+  title,
+  onClick,
+}: {
+  icon: LucideIcon
+  label: string
+  tone: ActionTone
+  title?: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      title={title ?? label}
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold ring-1 ring-inset transition-colors ${actionToneClasses[tone]}`}
+    >
+      <Icon size={14} /> {label}
+    </button>
+  )
+}
 
 export function LoansPage() {
   const db = useStore((s) => s.db)
@@ -71,7 +106,7 @@ export function LoansPage() {
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className={`${inputClass} w-auto`}>
           {statusFilters.map((s) => (
             <option key={s} value={s}>
-              {s}
+              {s === 'Semua' ? s : loanStatusLabel(s)}
             </option>
           ))}
         </select>
@@ -90,7 +125,7 @@ export function LoansPage() {
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] text-left text-sm">
+          <table className="w-full min-w-[1080px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
                 <th className="px-4 py-2.5 font-medium">No / Peminta</th>
@@ -142,37 +177,37 @@ export function LoansPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge tone={loanStatusTone(status)}>{status}</Badge>
+                      <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
                       <div className="mt-1"><Badge tone={priorityTone(loan.priority)}>{loan.priority}</Badge></div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex max-w-[210px] flex-wrap items-center justify-end gap-1.5">
                         {loan.status === 'Pending' && (
-                          <button title="Setujui" onClick={() => quickApprove(loan)} className="rounded-lg p-1.5 text-teal-600 hover:bg-teal-50">
-                            <CheckCircle2 size={16} />
-                          </button>
+                          <ActionButton icon={CheckCircle2} label="Setujui" tone="teal" onClick={() => quickApprove(loan)} />
                         )}
                         {loan.status === 'Disetujui' && (
-                          <button title="Aktifkan (boom diambil)" onClick={() => quickActivate(loan)} className="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50">
-                            <PackageCheck size={16} />
-                          </button>
+                          <ActionButton
+                            icon={PackageCheck}
+                            label="Sedang Dipakai"
+                            title="Tandai sedang dipakai (boom sudah diambil)"
+                            tone="blue"
+                            onClick={() => quickActivate(loan)}
+                          />
                         )}
                         {loan.status === 'Aktif' && (
-                          <button title="Tandai Selesai / Dikembalikan" onClick={() => quickReturn(loan)} className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50">
-                            <PackageCheck size={16} />
-                          </button>
+                          <ActionButton
+                            icon={PackageCheck}
+                            label="Selesai"
+                            title="Tandai selesai / boom dikembalikan"
+                            tone="emerald"
+                            onClick={() => quickReturn(loan)}
+                          />
                         )}
                         {(loan.status === 'Pending' || loan.status === 'Disetujui') && (
-                          <button title="Batalkan" onClick={() => quickCancel(loan)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
-                            <XCircle size={16} />
-                          </button>
+                          <ActionButton icon={XCircle} label="Batalkan" tone="slate" onClick={() => quickCancel(loan)} />
                         )}
-                        <button title="Edit" onClick={() => setModalState({ open: true, loan })} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
-                          <Pencil size={15} />
-                        </button>
-                        <button title="Hapus" onClick={() => setConfirmDelete(loan.id)} className="rounded-lg p-1.5 text-red-500 hover:bg-red-50">
-                          <Trash2 size={15} />
-                        </button>
+                        <ActionButton icon={Pencil} label="Edit" tone="slate" onClick={() => setModalState({ open: true, loan })} />
+                        <ActionButton icon={Trash2} label="Hapus" tone="red" onClick={() => setConfirmDelete(loan.id)} />
                       </div>
                     </td>
                   </tr>

@@ -5,7 +5,7 @@ import { Header } from '../layout/Header'
 import { Card } from '../ui/Card'
 import { Badge, loanStatusTone } from '../ui/Badge'
 import { posIcon, siteActiveIcon, siteIdleIcon, siteOverdueIcon, sitePendingIcon } from './icons'
-import { effectiveLoanStatus, isLoanOpen, loanDaysRemaining, summarizePosStock } from '../../lib/inventory'
+import { effectiveLoanStatus, isLoanOpen, loanDaysRemaining, loanStatusLabel, summarizePosStock } from '../../lib/inventory'
 import { formatDateID } from '../../lib/date'
 import type { MapLocation } from '../../types'
 import { Boxes, MapPinned, PackageCheck } from 'lucide-react'
@@ -137,7 +137,7 @@ export function MapPage() {
                             <div key={loan.id} className="rounded-lg border border-slate-100 bg-slate-50 p-2 text-xs">
                               <div className="flex items-center justify-between">
                                 <span className="font-semibold text-slate-700">{loan.requesterName}</span>
-                                <Badge tone={loanStatusTone(status)}>{status}</Badge>
+                                <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
                               </div>
                               <div className="text-slate-500">{loan.entity} &middot; Ext {loan.ext}</div>
                               <div className="text-slate-500">Fungsi: {loan.boomFunction}</div>

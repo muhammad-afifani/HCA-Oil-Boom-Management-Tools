@@ -42,3 +42,12 @@ body {
   margin: 0;
   min-width: 260px;
 }
+
+.picker-pulse-ring {
+  animation: picker-pulse 1.6s ease-out infinite;
+}
+@keyframes picker-pulse {
+  0% { transform: scale(0.6); opacity: 0.45; }
+  70% { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1.8); opacity: 0; }
+}

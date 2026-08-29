@@ -79,6 +79,21 @@ export function isLoanOpen(loan: LoanRequest): boolean {
   return RESERVING_STATUSES.includes(loan.status)
 }
 
+// Internal status values stay stable (data, Excel/JSON, comparisons); this only maps to
+// what's shown to the user, so "Aktif" reads as "Sedang Dipakai" everywhere in the UI.
+export const LOAN_STATUS_LABELS: Record<string, string> = {
+  Pending: 'Pending',
+  Disetujui: 'Disetujui',
+  Aktif: 'Sedang Dipakai',
+  Selesai: 'Selesai',
+  Dibatalkan: 'Dibatalkan',
+  Terlambat: 'Terlambat',
+}
+
+export function loanStatusLabel(status: string): string {
+  return LOAN_STATUS_LABELS[status] ?? status
+}
+
 export interface CompanySummary {
   totalUnits: number
   usableUnits: number
