@@ -27,7 +27,10 @@ export function urgencyScore(loan: LoanRequest): number {
   } else if (status === 'Pending') {
     dateComponent = daysFromToday(loan.requestDate) // longer waiting (older request) = more urgent
   } else {
-    dateComponent = loanDaysRemaining(loan) // Aktif / Terlambat: closer to / past due date = more urgent
+    // Aktif / Terlambat: closer to / past due date = more urgent. TBC (no known end date)
+    // sinks to the bottom of its tier since there's nothing to be urgent about yet.
+    const days = loanDaysRemaining(loan)
+    dateComponent = days === null ? 999999 : days
   }
 
   return tier * 100000 + dateComponent * 10 + priorityBoost

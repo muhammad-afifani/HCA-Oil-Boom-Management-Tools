@@ -192,11 +192,15 @@ function PriorityRow({
       ? `Diminta ${formatDateID(loan.requestDate)}`
       : loan.status === 'Disetujui'
         ? `Mulai ${formatDateID(loan.startDate)}`
-        : days < 0
-          ? `Lewat ${Math.abs(days)} hari`
-          : days === 0
-            ? 'Selesai hari ini'
-            : `${days} hari lagi`
+        : days === null
+          ? 'TBC'
+          : days < 0
+            ? `Lewat ${Math.abs(days)} hari`
+            : days === 0
+              ? 'Selesai hari ini'
+              : `${days} hari lagi`
+  const isUrgentCountdown = days !== null && days < 0
+  const isSoonCountdown = days !== null && days <= 2
 
   return (
     <div
@@ -232,13 +236,16 @@ function PriorityRow({
           <span className="truncate">{site?.name ?? '-'}</span>
           <span className="shrink-0 text-slate-300">dari</span>
           <span className="truncate">{pos?.name ?? '-'}</span>
+          {(loan.additionalSources?.length ?? 0) > 0 && (
+            <span className="shrink-0 text-teal-600">+{loan.additionalSources!.length} pos lain</span>
+          )}
           <span className="shrink-0 text-slate-300">&middot;</span>
           <span className="shrink-0">{loan.quantityUnits} unit</span>
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:hidden">
           <Badge tone={priorityTone(loan.priority)}>{loan.priority}</Badge>
           <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
-          <span className={clsx('text-xs', days < 0 ? 'font-semibold text-red-600' : days <= 2 ? 'font-semibold text-amber-600' : 'text-slate-400')}>
+          <span className={clsx('text-xs', isUrgentCountdown ? 'font-semibold text-red-600' : isSoonCountdown ? 'font-semibold text-amber-600' : 'text-slate-400')}>
             {countdownLabel}
           </span>
         </div>
@@ -249,7 +256,7 @@ function PriorityRow({
           <Badge tone={priorityTone(loan.priority)}>{loan.priority}</Badge>
           <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
         </div>
-        <span className={clsx('text-xs', days < 0 ? 'font-semibold text-red-600' : days <= 2 ? 'font-semibold text-amber-600' : 'text-slate-400')}>
+        <span className={clsx('text-xs', isUrgentCountdown ? 'font-semibold text-red-600' : isSoonCountdown ? 'font-semibold text-amber-600' : 'text-slate-400')}>
           {countdownLabel}
         </span>
       </div>

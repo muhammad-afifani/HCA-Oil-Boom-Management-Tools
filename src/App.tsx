@@ -8,9 +8,10 @@ const MapPage = lazy(() => import('./components/map/MapPage').then((m) => ({ def
 const LoansPage = lazy(() => import('./components/loans/LoansPage').then((m) => ({ default: m.LoansPage })))
 const PriorityPage = lazy(() => import('./components/priority/PriorityPage').then((m) => ({ default: m.PriorityPage })))
 const MasterDataPage = lazy(() => import('./components/master/MasterDataPage').then((m) => ({ default: m.MasterDataPage })))
+const RecapPage = lazy(() => import('./components/recap/RecapPage').then((m) => ({ default: m.RecapPage })))
 const ImportExportPage = lazy(() => import('./components/io/ImportExportPage').then((m) => ({ default: m.ImportExportPage })))
 
-export type PageKey = 'dashboard' | 'map' | 'loans' | 'priority' | 'master' | 'io'
+export type PageKey = 'dashboard' | 'map' | 'loans' | 'priority' | 'master' | 'recap' | 'io'
 
 function PageFallback() {
   return <div className="flex h-64 items-center justify-center text-sm text-slate-400">Memuat halaman...</div>
@@ -38,6 +39,7 @@ function App() {
                 {page === 'loans' && <LoansPage />}
                 {page === 'priority' && <PriorityPage />}
                 {page === 'master' && <MasterDataPage />}
+                {page === 'recap' && <RecapPage />}
                 {page === 'io' && <ImportExportPage />}
               </motion.div>
             </AnimatePresence>

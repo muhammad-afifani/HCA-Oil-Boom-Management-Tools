@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { LayoutDashboard, MapPinned, ClipboardList, ListOrdered, Boxes, DatabaseBackup, Waves } from 'lucide-react'
+import { LayoutDashboard, MapPinned, ClipboardList, ListOrdered, Boxes, FileText, DatabaseBackup, Waves } from 'lucide-react'
 import type { PageKey } from '../../App'
 
 const items: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
@@ -8,6 +8,7 @@ const items: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: 'priority', label: 'Prioritas', icon: ListOrdered },
   { key: 'loans', label: 'Peminjaman', icon: ClipboardList },
   { key: 'master', label: 'Master Data', icon: Boxes },
+  { key: 'recap', label: 'Rekap & Laporan', icon: FileText },
   { key: 'io', label: 'Import / Export', icon: DatabaseBackup },
 ]
 

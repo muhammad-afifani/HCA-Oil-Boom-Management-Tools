@@ -145,32 +145,38 @@ export function LoansPage() {
                 const pos = db.locations.find((l) => l.id === loan.sourcePosId)
                 const status = effectiveLoanStatus(loan)
                 const days = loanDaysRemaining(loan)
-                const duration = planDurationDays(loan.startDate, loan.endDate)
+                const duration = loan.endDateTBC || !loan.endDate ? null : planDurationDays(loan.startDate, loan.endDate)
                 return (
                   <tr key={loan.id} className="align-top hover:bg-slate-50/50">
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-700">{loan.requestNumber}</div>
                       <div className="text-xs text-slate-500">{loan.requesterName}</div>
-                      <div className="text-xs text-slate-400">{loan.entity} &middot; Ext {loan.ext}</div>
+                      <div className="text-xs text-slate-400">{loan.entity} &middot; Ext {loan.ext || '-'}</div>
+                      {loan.email && <div className="text-xs text-slate-400">{loan.email}</div>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-slate-700">{loan.boomFunction}</div>
                       <div className="max-w-[220px] truncate text-xs text-slate-400" title={loan.workDescription}>{loan.workDescription}</div>
                     </td>
                     <td className="px-4 py-3 text-slate-600">{site?.name ?? '-'}</td>
-                    <td className="px-4 py-3 text-slate-600">{pos?.name ?? '-'}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {pos?.name ?? '-'}
+                      {(loan.additionalSources?.length ?? 0) > 0 && (
+                        <div className="text-xs text-teal-600">+{loan.additionalSources!.length} pos lain</div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-600">
                       {loan.quantityUnits} unit
                       <div className="text-xs text-slate-400">{loan.quantityUnits * loan.unitLengthMeters} m</div>
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {formatDateID(loan.startDate)} - {formatDateID(loan.endDate)}
-                      <div className="text-xs text-slate-400">{duration} hari</div>
+                      {formatDateID(loan.startDate)} - {loan.endDateTBC || !loan.endDate ? <span className="font-medium text-amber-600">TBC</span> : formatDateID(loan.endDate)}
+                      <div className="text-xs text-slate-400">{duration !== null ? `${duration} hari` : 'durasi belum pasti'}</div>
                     </td>
                     <td className="px-4 py-3">
                       {loan.status === 'Aktif' ? (
-                        <span className={days < 0 ? 'font-semibold text-red-600' : days <= 2 ? 'font-semibold text-amber-600' : 'text-slate-500'}>
-                          {days < 0 ? `Lewat ${Math.abs(days)}h` : `${days} hari lagi`}
+                        <span className={days !== null && days < 0 ? 'font-semibold text-red-600' : days !== null && days <= 2 ? 'font-semibold text-amber-600' : 'text-slate-500'}>
+                          {days === null ? 'TBC' : days < 0 ? `Lewat ${Math.abs(days)}h` : `${days} hari lagi`}
                         </span>
                       ) : (
                         <span className="text-slate-300">-</span>

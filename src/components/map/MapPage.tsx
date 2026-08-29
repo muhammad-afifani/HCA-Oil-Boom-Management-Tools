@@ -114,7 +114,7 @@ export function MapPage() {
 
           {showSites &&
             siteList.map((site) => {
-              const loans = (openLoansBySite.get(site.id) ?? []).slice().sort((a, b) => loanDaysRemaining(a) - loanDaysRemaining(b))
+              const loans = (openLoansBySite.get(site.id) ?? []).slice().sort((a, b) => (loanDaysRemaining(a) ?? 999999) - (loanDaysRemaining(b) ?? 999999))
               return (
                 <Marker key={site.id} position={[site.lat, site.lng]} icon={iconForSite(site)}>
                   <Popup>
@@ -139,13 +139,13 @@ export function MapPage() {
                                 <span className="font-semibold text-slate-700">{loan.requesterName}</span>
                                 <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
                               </div>
-                              <div className="text-slate-500">{loan.entity} &middot; Ext {loan.ext}</div>
+                              <div className="text-slate-500">{loan.entity} &middot; Ext {loan.ext || '-'}</div>
                               <div className="text-slate-500">Fungsi: {loan.boomFunction}</div>
-                              <div className="text-slate-500">{loan.quantityUnits} unit dari {pos?.name}</div>
+                              <div className="text-slate-500">{loan.quantityUnits} unit dari {pos?.name}{(loan.additionalSources?.length ?? 0) > 0 ? ` +${loan.additionalSources!.length} pos lain` : ''}</div>
                               <div className="mt-1 flex items-center justify-between text-slate-400">
-                                <span>{formatDateID(loan.startDate)} - {formatDateID(loan.endDate)}</span>
-                                <span className={days < 0 ? 'font-semibold text-red-600' : ''}>
-                                  {days < 0 ? `Lewat ${Math.abs(days)}h` : `${days}h lagi`}
+                                <span>{formatDateID(loan.startDate)} - {loan.endDateTBC || !loan.endDate ? 'TBC' : formatDateID(loan.endDate)}</span>
+                                <span className={days !== null && days < 0 ? 'font-semibold text-red-600' : ''}>
+                                  {days === null ? 'TBC' : days < 0 ? `Lewat ${Math.abs(days)}h` : `${days}h lagi`}
                                 </span>
                               </div>
                             </div>

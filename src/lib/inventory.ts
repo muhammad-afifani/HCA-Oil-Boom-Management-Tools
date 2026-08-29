@@ -1,8 +1,25 @@
-import type { LoanRequest, StockBatch } from '../types'
+import type { LoanAllocation, LoanRequest, StockBatch } from '../types'
 import { daysFromToday, todayISO } from './date'
 
 // Statuses that still hold stock "out" of the post (reserved or in use).
 export const RESERVING_STATUSES: LoanRequest['status'][] = ['Pending', 'Disetujui', 'Aktif']
+
+/**
+ * Full breakdown of which pos this loan draws from, including the primary
+ * pos (sourcePosId) and any optional split allocations (additionalSources)
+ * used when the primary pos alone couldn't cover quantityUnits.
+ */
+export function getLoanAllocations(loan: LoanRequest): LoanAllocation[] {
+  const extra = loan.additionalSources ?? []
+  const extraTotal = extra.reduce((sum, a) => sum + a.quantityUnits, 0)
+  const primaryQty = Math.max(0, loan.quantityUnits - extraTotal)
+  const allocations: LoanAllocation[] = []
+  if (primaryQty > 0) allocations.push({ posId: loan.sourcePosId, quantityUnits: primaryQty })
+  for (const a of extra) {
+    if (a.quantityUnits > 0) allocations.push(a)
+  }
+  return allocations
+}
 
 export interface PosStockSummary {
   posId: string
@@ -31,8 +48,11 @@ export function summarizePosStock(
   const totalUnits = usableUnits + rusakBeratUnits
 
   const reservedUnits = loans
-    .filter((l) => l.sourcePosId === posId && RESERVING_STATUSES.includes(l.status))
-    .reduce((sum, l) => sum + l.quantityUnits, 0)
+    .filter((l) => RESERVING_STATUSES.includes(l.status))
+    .reduce((sum, l) => {
+      const forThisPos = getLoanAllocations(l).find((a) => a.posId === posId)
+      return sum + (forThisPos?.quantityUnits ?? 0)
+    }, 0)
 
   const availableUnits = Math.max(0, usableUnits - reservedUnits)
 
@@ -63,6 +83,7 @@ function sumUnits(batches: StockBatch[], condition: StockBatch['condition']): nu
 }
 
 export function isLoanOverdue(loan: LoanRequest): boolean {
+  if (loan.endDateTBC || !loan.endDate) return false
   return loan.status === 'Aktif' && daysFromToday(loan.endDate) < 0
 }
 
@@ -71,12 +92,23 @@ export function effectiveLoanStatus(loan: LoanRequest): LoanRequest['status'] | 
   return loan.status
 }
 
-export function loanDaysRemaining(loan: LoanRequest): number {
+/** Days until the planned end date, or null when it's TBC / not yet set. */
+export function loanDaysRemaining(loan: LoanRequest): number | null {
+  if (loan.endDateTBC || !loan.endDate) return null
   return daysFromToday(loan.endDate)
 }
 
 export function isLoanOpen(loan: LoanRequest): boolean {
   return RESERVING_STATUSES.includes(loan.status)
+}
+
+/** Short human label for a loan's remaining time to its planned end date ("3 hari lagi", "Lewat 2 hari", "TBC"). */
+export function loanCountdownText(loan: LoanRequest): string {
+  const days = loanDaysRemaining(loan)
+  if (days === null) return 'TBC'
+  if (days < 0) return `Lewat ${Math.abs(days)} hari`
+  if (days === 0) return 'Selesai hari ini'
+  return `${days} hari lagi`
 }
 
 // Internal status values stay stable (data, Excel/JSON, comparisons); this only maps to

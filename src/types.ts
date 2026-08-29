@@ -38,25 +38,41 @@ export type LoanStatus =
 
 export type LoanPriority = 'Normal' | 'Tinggi' | 'Urgent'
 
+/** An extra pos tapped to cover a shortfall beyond what sourcePosId/quantityUnits alone can supply. */
+export interface LoanAllocation {
+  posId: string
+  quantityUnits: number
+}
+
 export interface LoanRequest {
   id: string
   requestNumber: string
   requesterName: string
   entity: string
   ext: string
+  email?: string
   boomFunction: string
   workDescription: string
   siteLocationId: string
+  /** Primary/main pos this loan draws from. Its own share is quantityUnits minus whatever additionalSources cover. */
   sourcePosId: string
   quantityUnits: number
   unitLengthMeters: number
+  /** Optional split allocation: other pos tapped when sourcePosId alone can't cover quantityUnits. */
+  additionalSources?: LoanAllocation[]
   requestDate: string
   startDate: string
   endDate: string
+  /** True when the planned end date isn't known yet ("TBC") — endDate may be blank in that case. */
+  endDateTBC?: boolean
   actualReturnDate?: string
   status: LoanStatus
   priority: LoanPriority
   notes?: string
+  approvedBy?: string
+  installedAt?: string
+  installedPhotoDataUrl?: string
+  installedNotes?: string
   createdAt: string
   updatedAt: string
 }

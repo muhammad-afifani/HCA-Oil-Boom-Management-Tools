@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import type { AppDatabase, BoomCondition, LoanPriority, LoanRequest, LoanStatus, LocationType, MapLocation, StockBatch } from '../types'
+import type { AppDatabase, BoomCondition, LoanAllocation, LoanPriority, LoanRequest, LoanStatus, LocationType, MapLocation, StockBatch } from '../types'
 import { makeId } from './id'
 import { downloadBlob, dateStamp } from './jsonIO'
 import { loanStatusLabel } from './inventory'
@@ -17,14 +17,55 @@ for (const s of STATUSES) {
   STATUS_LABEL_TO_VALUE[s.toLowerCase()] = s
 }
 
-function headerRow(sheet: ExcelJS.Worksheet, headers: string[]) {
-  const row = sheet.addRow(headers)
+// Single source of truth for the Peminjaman sheet's column order — export and import both
+// derive their column indices from this array so they can never drift out of sync.
+const LOAN_HEADERS = [
+  'ID', 'No Permintaan', 'Nama Peminta', 'Entity/Perusahaan', 'Ext', 'Email', 'Fungsi Pekerjaan',
+  'Deskripsi Pekerjaan', 'Lokasi Kerja Kode', 'Lokasi Kerja Nama', 'Pos Asal Kode', 'Pos Asal Nama',
+  'Pos Tambahan (kode:jumlah, kode:jumlah, ...)', 'Jumlah Unit', 'Panjang per Unit (m)',
+  'Tgl Request', 'Tgl Mulai', 'Tgl Selesai Rencana', 'Selesai TBC (Ya/Tidak)', 'Tgl Kembali Aktual',
+  'Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)', 'Prioritas', 'Disetujui Oleh (ENV)', 'Catatan',
+] as const
+
+const COL: Record<(typeof LOAN_HEADERS)[number], number> = Object.fromEntries(
+  LOAN_HEADERS.map((h, i) => [h, i + 1]),
+) as Record<(typeof LOAN_HEADERS)[number], number>
+
+function headerRow(sheet: ExcelJS.Worksheet, headers: readonly string[]) {
+  const row = sheet.addRow(headers as string[])
   row.font = { bold: true, color: { argb: 'FFFFFFFF' } }
   row.eachCell((cell) => {
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } }
     cell.alignment = { vertical: 'middle', horizontal: 'left' }
   })
   sheet.views = [{ state: 'frozen', ySplit: 1 }]
+}
+
+function encodeAdditionalSources(loan: LoanRequest, locations: MapLocation[]): string {
+  const extra = loan.additionalSources ?? []
+  return extra
+    .filter((a) => a.quantityUnits > 0)
+    .map((a) => {
+      const pos = locations.find((l) => l.id === a.posId)
+      return `${pos?.code || pos?.name || a.posId}:${a.quantityUnits}`
+    })
+    .join(', ')
+}
+
+function decodeAdditionalSources(raw: string, locations: MapLocation[], warnings: string[], rowNumber: number): LoanAllocation[] {
+  if (!raw.trim()) return []
+  const result: LoanAllocation[] = []
+  for (const part of raw.split(',').map((s) => s.trim()).filter(Boolean)) {
+    const [codeRaw, qtyRaw] = part.split(':').map((s) => s.trim())
+    const qty = Number(qtyRaw)
+    const pos = locations.find((l) => (l.code && l.code.toLowerCase() === codeRaw?.toLowerCase()) || l.name.toLowerCase() === codeRaw?.toLowerCase())
+    if (!pos || !Number.isFinite(qty) || qty <= 0) {
+      warnings.push(`Baris Peminjaman ${rowNumber}: pos tambahan "${part}" tidak valid/tidak ditemukan, diabaikan`)
+      continue
+    }
+    result.push({ posId: pos.id, quantityUnits: qty })
+  }
+  return result
 }
 
 export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
@@ -63,21 +104,36 @@ export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
 
   // --- Peminjaman ---
   const wsLoan = wb.addWorksheet('Peminjaman')
-  headerRow(wsLoan, [
-    'ID', 'No Permintaan', 'Nama Peminta', 'Entity/Perusahaan', 'Ext', 'Fungsi Pekerjaan',
-    'Deskripsi Pekerjaan', 'Lokasi Kerja Kode', 'Lokasi Kerja Nama', 'Pos Asal Kode', 'Pos Asal Nama',
-    'Jumlah Unit', 'Panjang per Unit (m)', 'Tgl Request', 'Tgl Mulai', 'Tgl Selesai Rencana',
-    'Tgl Kembali Aktual', 'Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)', 'Prioritas', 'Catatan',
-  ])
+  headerRow(wsLoan, LOAN_HEADERS)
   for (const l of db.loans) {
     const site = db.locations.find((x) => x.id === l.siteLocationId)
     const pos = db.locations.find((x) => x.id === l.sourcePosId)
-    wsLoan.addRow([
-      l.id, l.requestNumber, l.requesterName, l.entity, l.ext, l.boomFunction,
-      l.workDescription, site?.code ?? '', site?.name ?? '', pos?.code ?? '', pos?.name ?? '',
-      l.quantityUnits, l.unitLengthMeters, l.requestDate, l.startDate, l.endDate,
-      l.actualReturnDate ?? '', loanStatusLabel(l.status), l.priority, l.notes ?? '',
-    ])
+    const row = new Array(LOAN_HEADERS.length).fill('')
+    row[COL['ID'] - 1] = l.id
+    row[COL['No Permintaan'] - 1] = l.requestNumber
+    row[COL['Nama Peminta'] - 1] = l.requesterName
+    row[COL['Entity/Perusahaan'] - 1] = l.entity
+    row[COL['Ext'] - 1] = l.ext
+    row[COL['Email'] - 1] = l.email ?? ''
+    row[COL['Fungsi Pekerjaan'] - 1] = l.boomFunction
+    row[COL['Deskripsi Pekerjaan'] - 1] = l.workDescription
+    row[COL['Lokasi Kerja Kode'] - 1] = site?.code ?? ''
+    row[COL['Lokasi Kerja Nama'] - 1] = site?.name ?? ''
+    row[COL['Pos Asal Kode'] - 1] = pos?.code ?? ''
+    row[COL['Pos Asal Nama'] - 1] = pos?.name ?? ''
+    row[COL['Pos Tambahan (kode:jumlah, kode:jumlah, ...)'] - 1] = encodeAdditionalSources(l, db.locations)
+    row[COL['Jumlah Unit'] - 1] = l.quantityUnits
+    row[COL['Panjang per Unit (m)'] - 1] = l.unitLengthMeters
+    row[COL['Tgl Request'] - 1] = l.requestDate
+    row[COL['Tgl Mulai'] - 1] = l.startDate
+    row[COL['Tgl Selesai Rencana'] - 1] = l.endDateTBC ? '' : l.endDate
+    row[COL['Selesai TBC (Ya/Tidak)'] - 1] = l.endDateTBC ? 'Ya' : 'Tidak'
+    row[COL['Tgl Kembali Aktual'] - 1] = l.actualReturnDate ?? ''
+    row[COL['Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)'] - 1] = loanStatusLabel(l.status)
+    row[COL['Prioritas'] - 1] = l.priority
+    row[COL['Disetujui Oleh (ENV)'] - 1] = l.approvedBy ?? ''
+    row[COL['Catatan'] - 1] = l.notes ?? ''
+    wsLoan.addRow(row)
   }
   wsLoan.columns.forEach((c) => (c.width = 18))
 
@@ -187,35 +243,40 @@ export async function importDatabaseFromExcel(file: File, current: AppDatabase):
   if (wsLoan) {
     wsLoan.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return
-      const requestNumber = cellStr(row, 2)
+      const requestNumber = cellStr(row, COL['No Permintaan'])
       if (!requestNumber) return
-      const siteId = findLocId(cellStr(row, 8), cellStr(row, 9), rowNumber, 'Peminjaman (lokasi kerja)')
-      const posId = findLocId(cellStr(row, 10), cellStr(row, 11), rowNumber, 'Peminjaman (pos asal)')
+      const siteId = findLocId(cellStr(row, COL['Lokasi Kerja Kode']), cellStr(row, COL['Lokasi Kerja Nama']), rowNumber, 'Peminjaman (lokasi kerja)')
+      const posId = findLocId(cellStr(row, COL['Pos Asal Kode']), cellStr(row, COL['Pos Asal Nama']), rowNumber, 'Peminjaman (pos asal)')
       if (!siteId || !posId) return
-      const statusRaw = cellStr(row, 18)
+      const statusRaw = cellStr(row, COL['Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)'])
       const status = STATUS_LABEL_TO_VALUE[statusRaw.toLowerCase()] ?? 'Pending'
-      const priorityRaw = cellStr(row, 19) as LoanPriority
+      const priorityRaw = cellStr(row, COL['Prioritas']) as LoanPriority
       const priority = PRIORITIES.includes(priorityRaw) ? priorityRaw : 'Normal'
+      const endDateTBC = cellStr(row, COL['Selesai TBC (Ya/Tidak)']).toLowerCase().startsWith('y')
       const now = new Date().toISOString()
       loans.push({
-        id: cellStr(row, 1) || makeId('loan'),
+        id: cellStr(row, COL['ID']) || makeId('loan'),
         requestNumber,
-        requesterName: cellStr(row, 3),
-        entity: cellStr(row, 4),
-        ext: cellStr(row, 5),
-        boomFunction: cellStr(row, 6),
-        workDescription: cellStr(row, 7),
+        requesterName: cellStr(row, COL['Nama Peminta']),
+        entity: cellStr(row, COL['Entity/Perusahaan']),
+        ext: cellStr(row, COL['Ext']),
+        email: cellStr(row, COL['Email']) || undefined,
+        boomFunction: cellStr(row, COL['Fungsi Pekerjaan']),
+        workDescription: cellStr(row, COL['Deskripsi Pekerjaan']),
         siteLocationId: siteId,
         sourcePosId: posId,
-        quantityUnits: cellNum(row, 12),
-        unitLengthMeters: cellNum(row, 13) || settings.defaultUnitLengthMeters,
-        requestDate: cellStr(row, 14),
-        startDate: cellStr(row, 15),
-        endDate: cellStr(row, 16),
-        actualReturnDate: cellStr(row, 17) || undefined,
+        quantityUnits: cellNum(row, COL['Jumlah Unit']),
+        unitLengthMeters: cellNum(row, COL['Panjang per Unit (m)']) || settings.defaultUnitLengthMeters,
+        additionalSources: decodeAdditionalSources(cellStr(row, COL['Pos Tambahan (kode:jumlah, kode:jumlah, ...)']), locations, warnings, rowNumber),
+        requestDate: cellStr(row, COL['Tgl Request']),
+        startDate: cellStr(row, COL['Tgl Mulai']),
+        endDate: endDateTBC ? '' : cellStr(row, COL['Tgl Selesai Rencana']),
+        endDateTBC,
+        actualReturnDate: cellStr(row, COL['Tgl Kembali Aktual']) || undefined,
         status,
         priority,
-        notes: cellStr(row, 20) || undefined,
+        approvedBy: cellStr(row, COL['Disetujui Oleh (ENV)']) || undefined,
+        notes: cellStr(row, COL['Catatan']) || undefined,
         createdAt: now,
         updatedAt: now,
       })
@@ -239,12 +300,7 @@ export async function downloadExcelTemplate(): Promise<void> {
   wsStock.columns.forEach((c) => (c.width = 20))
 
   const wsLoan = wb.addWorksheet('Peminjaman')
-  headerRow(wsLoan, [
-    'ID', 'No Permintaan', 'Nama Peminta', 'Entity/Perusahaan', 'Ext', 'Fungsi Pekerjaan',
-    'Deskripsi Pekerjaan', 'Lokasi Kerja Kode', 'Lokasi Kerja Nama', 'Pos Asal Kode', 'Pos Asal Nama',
-    'Jumlah Unit', 'Panjang per Unit (m)', 'Tgl Request', 'Tgl Mulai', 'Tgl Selesai Rencana',
-    'Tgl Kembali Aktual', 'Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)', 'Prioritas', 'Catatan',
-  ])
+  headerRow(wsLoan, LOAN_HEADERS)
   wsLoan.columns.forEach((c) => (c.width = 18))
 
   const buffer = await wb.xlsx.writeBuffer()

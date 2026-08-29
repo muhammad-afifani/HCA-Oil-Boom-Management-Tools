@@ -83,7 +83,7 @@ export function ImportExportPage() {
               </Button>
             </div>
             <p className="flex items-start gap-1.5 text-xs text-slate-400">
-              <FileJson size={14} className="mt-0.5 shrink-0" /> Import JSON akan menimpa seluruh data yang tersimpan saat ini di browser.
+              <FileJson size={14} className="mt-0.5 shrink-0" /> Import JSON akan menimpa seluruh data yang tersimpan saat ini di browser. Ini satu-satunya format yang menyertakan foto dokumentasi pemasangan — gunakan JSON untuk backup lengkap.
             </p>
           </div>
         </Card>
@@ -104,7 +104,7 @@ export function ImportExportPage() {
               <FileSpreadsheet size={14} /> Download Template Kosong
             </Button>
             <p className="text-xs text-slate-400">
-              Sheet: <b>Lokasi</b>, <b>Stok Boom</b>, <b>Peminjaman</b>, <b>Pengaturan</b>. Kolom "Kode" pada Lokasi dipakai untuk mencocokkan referensi Pos/Lokasi Kerja di sheet lain saat import.
+              Sheet: <b>Lokasi</b>, <b>Stok Boom</b>, <b>Peminjaman</b>, <b>Pengaturan</b>. Kolom "Kode" pada Lokasi dipakai untuk mencocokkan referensi Pos/Lokasi Kerja di sheet lain saat import. Foto dokumentasi pemasangan tidak ikut di Excel (ukurannya terlalu besar untuk sel) — gunakan backup JSON untuk itu.
             </p>
           </div>
         </Card>
