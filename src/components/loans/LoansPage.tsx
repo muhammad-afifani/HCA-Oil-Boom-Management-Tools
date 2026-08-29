@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
-import type { LucideIcon } from 'lucide-react'
 import { Plus, Search, Pencil, Trash2, CheckCircle2, PackageCheck, XCircle, ArrowUpDown } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { Header } from '../layout/Header'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { ActionButton } from '../ui/ActionButton'
 import { Badge, loanStatusTone, priorityTone } from '../ui/Badge'
 import { inputClass } from '../ui/Field'
 import { effectiveLoanStatus, loanDaysRemaining, loanStatusLabel } from '../../lib/inventory'
@@ -15,40 +15,6 @@ import type { LoanRequest, LoanStatus } from '../../types'
 type SortKey = 'endDate' | 'requestDate' | 'startDate'
 
 const statusFilters: (LoanStatus | 'Terlambat' | 'Semua')[] = ['Semua', 'Pending', 'Disetujui', 'Aktif', 'Terlambat', 'Selesai', 'Dibatalkan']
-
-type ActionTone = 'teal' | 'blue' | 'emerald' | 'slate' | 'red'
-
-const actionToneClasses: Record<ActionTone, string> = {
-  teal: 'bg-teal-50 text-teal-700 hover:bg-teal-100 ring-teal-200',
-  blue: 'bg-blue-50 text-blue-700 hover:bg-blue-100 ring-blue-200',
-  emerald: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 ring-emerald-200',
-  slate: 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-slate-200',
-  red: 'bg-red-50 text-red-600 hover:bg-red-100 ring-red-200',
-}
-
-function ActionButton({
-  icon: Icon,
-  label,
-  tone,
-  title,
-  onClick,
-}: {
-  icon: LucideIcon
-  label: string
-  tone: ActionTone
-  title?: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      title={title ?? label}
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold ring-1 ring-inset transition-colors ${actionToneClasses[tone]}`}
-    >
-      <Icon size={14} /> {label}
-    </button>
-  )
-}
 
 export function LoansPage() {
   const db = useStore((s) => s.db)
@@ -125,18 +91,17 @@ export function LoansPage() {
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1080px] text-left text-sm">
+          <table className="w-full min-w-[1220px] table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-4 py-2.5 font-medium">No / Peminta</th>
-                <th className="px-4 py-2.5 font-medium">Fungsi &amp; Pekerjaan</th>
-                <th className="px-4 py-2.5 font-medium">Lokasi Kerja</th>
-                <th className="px-4 py-2.5 font-medium">Pos Asal</th>
-                <th className="px-4 py-2.5 font-medium">Jumlah</th>
-                <th className="px-4 py-2.5 font-medium">Periode (hari)</th>
-                <th className="px-4 py-2.5 font-medium">Sisa Waktu</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium text-right">Aksi</th>
+                <th className="w-[180px] px-4 py-2.5 font-medium">No / Peminta</th>
+                <th className="w-[190px] px-4 py-2.5 font-medium">Fungsi &amp; Pekerjaan</th>
+                <th className="w-[120px] px-4 py-2.5 font-medium">Lokasi Kerja</th>
+                <th className="w-[120px] px-4 py-2.5 font-medium">Pos Asal</th>
+                <th className="w-[80px] px-4 py-2.5 font-medium">Jumlah</th>
+                <th className="w-[200px] px-4 py-2.5 font-medium">Periode</th>
+                <th className="w-[110px] px-4 py-2.5 font-medium">Status</th>
+                <th className="w-[180px] px-4 py-2.5 font-medium text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -150,17 +115,19 @@ export function LoansPage() {
                   <tr key={loan.id} className="align-top hover:bg-slate-50/50">
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-700">{loan.requestNumber}</div>
-                      <div className="text-xs text-slate-500">{loan.requesterName}</div>
-                      <div className="text-xs text-slate-400">{loan.entity} &middot; Ext {loan.ext || '-'}</div>
-                      {loan.email && <div className="text-xs text-slate-400">{loan.email}</div>}
+                      <div className="truncate text-xs text-slate-500">{loan.requesterName}</div>
+                      <div className="truncate text-xs text-slate-400">{loan.entity} &middot; Ext {loan.ext || '-'}</div>
+                      {loan.email && <div className="truncate text-xs text-slate-400">{loan.email}</div>}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-slate-700">{loan.boomFunction}</div>
-                      <div className="max-w-[220px] truncate text-xs text-slate-400" title={loan.workDescription}>{loan.workDescription}</div>
+                      <div className="truncate text-slate-700">{loan.boomFunction}</div>
+                      <div className="truncate text-xs text-slate-400" title={loan.workDescription}>{loan.workDescription}</div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{site?.name ?? '-'}</td>
                     <td className="px-4 py-3 text-slate-600">
-                      {pos?.name ?? '-'}
+                      <div className="truncate">{site?.name ?? '-'}</div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      <div className="truncate">{pos?.name ?? '-'}</div>
                       {(loan.additionalSources?.length ?? 0) > 0 && (
                         <div className="text-xs text-teal-600">+{loan.additionalSources!.length} pos lain</div>
                       )}
@@ -170,31 +137,45 @@ export function LoansPage() {
                       <div className="text-xs text-slate-400">{loan.quantityUnits * loan.unitLengthMeters} m</div>
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {formatDateID(loan.startDate)} - {loan.endDateTBC || !loan.endDate ? <span className="font-medium text-amber-600">TBC</span> : formatDateID(loan.endDate)}
-                      <div className="text-xs text-slate-400">{duration !== null ? `${duration} hari` : 'durasi belum pasti'}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {loan.status === 'Aktif' ? (
-                        <span className={days !== null && days < 0 ? 'font-semibold text-red-600' : days !== null && days <= 2 ? 'font-semibold text-amber-600' : 'text-slate-500'}>
-                          {days === null ? 'TBC' : days < 0 ? `Lewat ${Math.abs(days)}h` : `${days} hari lagi`}
-                        </span>
-                      ) : (
-                        <span className="text-slate-300">-</span>
+                      <div className="flex flex-wrap items-baseline gap-x-1 text-sm">
+                        <span>{formatDateID(loan.startDate)}</span>
+                        <span className="text-slate-300">&rarr;</span>
+                        {loan.endDateTBC || !loan.endDate ? (
+                          <span className="font-medium text-amber-600">TBC</span>
+                        ) : (
+                          <span>{formatDateID(loan.endDate)}</span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 text-xs text-slate-400">
+                        {duration !== null ? `${duration} hari` : 'durasi belum pasti'}
+                      </div>
+                      {loan.status === 'Aktif' && (
+                        <div
+                          className={`mt-1 text-xs font-semibold ${
+                            days !== null && days < 0 ? 'text-red-600' : days !== null && days <= 2 ? 'text-amber-600' : 'text-slate-500'
+                          }`}
+                        >
+                          {days === null ? 'Sisa: TBC' : days < 0 ? `Lewat ${Math.abs(days)} hari` : `Sisa ${days} hari`}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
-                      <div className="mt-1"><Badge tone={priorityTone(loan.priority)}>{loan.priority}</Badge></div>
+                      {loan.priority !== 'Normal' && (
+                        <div className="mt-1">
+                          <Badge tone={priorityTone(loan.priority)}>{loan.priority}</Badge>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex max-w-[210px] flex-wrap items-center justify-end gap-1.5">
+                      <div className="flex flex-nowrap items-center justify-end gap-1">
                         {loan.status === 'Pending' && (
                           <ActionButton icon={CheckCircle2} label="Setujui" tone="teal" onClick={() => quickApprove(loan)} />
                         )}
                         {loan.status === 'Disetujui' && (
                           <ActionButton
                             icon={PackageCheck}
-                            label="Sedang Dipakai"
+                            label="Dipakai"
                             title="Tandai sedang dipakai (boom sudah diambil)"
                             tone="blue"
                             onClick={() => quickActivate(loan)}
@@ -210,10 +191,10 @@ export function LoansPage() {
                           />
                         )}
                         {(loan.status === 'Pending' || loan.status === 'Disetujui') && (
-                          <ActionButton icon={XCircle} label="Batalkan" tone="slate" onClick={() => quickCancel(loan)} />
+                          <ActionButton icon={XCircle} label="Batalkan" title="Batalkan" tone="slate" iconOnly onClick={() => quickCancel(loan)} />
                         )}
-                        <ActionButton icon={Pencil} label="Edit" tone="slate" onClick={() => setModalState({ open: true, loan })} />
-                        <ActionButton icon={Trash2} label="Hapus" tone="red" onClick={() => setConfirmDelete(loan.id)} />
+                        <ActionButton icon={Pencil} label="Edit" title="Edit" tone="slate" iconOnly onClick={() => setModalState({ open: true, loan })} />
+                        <ActionButton icon={Trash2} label="Hapus" title="Hapus" tone="red" iconOnly onClick={() => setConfirmDelete(loan.id)} />
                       </div>
                     </td>
                   </tr>
@@ -221,7 +202,7 @@ export function LoansPage() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-slate-400">
+                  <td colSpan={8} className="px-4 py-10 text-center text-sm text-slate-400">
                     Tidak ada data peminjaman yang cocok.
                   </td>
                 </tr>

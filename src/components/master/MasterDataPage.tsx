@@ -4,6 +4,7 @@ import { useStore } from '../../store/useStore'
 import { Header } from '../layout/Header'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { ActionButton } from '../ui/ActionButton'
 import { Badge, conditionTone } from '../ui/Badge'
 import { Field, inputClass } from '../ui/Field'
 import { LocationFormModal } from './LocationFormModal'
@@ -64,16 +65,16 @@ function LocationsPanel({ kind }: { kind: 'pos' | 'site' }) {
       </div>
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[760px] table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-4 py-2.5 font-medium">Nama</th>
-                <th className="px-4 py-2.5 font-medium">Kode</th>
-                {kind === 'site' && <th className="px-4 py-2.5 font-medium">Tipe</th>}
-                <th className="px-4 py-2.5 font-medium">Area</th>
-                <th className="px-4 py-2.5 font-medium">Koordinat</th>
-                {kind === 'pos' && <th className="px-4 py-2.5 font-medium">Stok Tersedia</th>}
-                <th className="px-4 py-2.5 font-medium text-right">Aksi</th>
+                <th className="w-[200px] px-4 py-2.5 font-medium">Nama</th>
+                <th className="w-[110px] px-4 py-2.5 font-medium">Kode</th>
+                {kind === 'site' && <th className="w-[100px] px-4 py-2.5 font-medium">Tipe</th>}
+                <th className="w-[140px] px-4 py-2.5 font-medium">Area</th>
+                <th className="w-[160px] px-4 py-2.5 font-medium">Koordinat</th>
+                {kind === 'pos' && <th className="w-[130px] px-4 py-2.5 font-medium">Stok Tersedia</th>}
+                <th className="w-[90px] px-4 py-2.5 font-medium text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -81,10 +82,10 @@ function LocationsPanel({ kind }: { kind: 'pos' | 'site' }) {
                 const stock = kind === 'pos' ? summarizePosStock(db.stockBatches, db.loans, loc.id) : null
                 return (
                   <tr key={loc.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-2.5 font-medium text-slate-700">{loc.name}</td>
-                    <td className="px-4 py-2.5 text-slate-500">{loc.code ?? '-'}</td>
+                    <td className="px-4 py-2.5 font-medium text-slate-700"><div className="truncate">{loc.name}</div></td>
+                    <td className="px-4 py-2.5 text-slate-500"><div className="truncate">{loc.code ?? '-'}</div></td>
                     {kind === 'site' && <td className="px-4 py-2.5 capitalize text-slate-600">{loc.type}</td>}
-                    <td className="px-4 py-2.5 text-slate-500">{loc.area ?? '-'}</td>
+                    <td className="px-4 py-2.5 text-slate-500"><div className="truncate">{loc.area ?? '-'}</div></td>
                     <td className="px-4 py-2.5 text-xs text-slate-500">{loc.lat.toFixed(5)}, {loc.lng.toFixed(5)}</td>
                     {kind === 'pos' && stock && (
                       <td className="px-4 py-2.5 text-slate-600">
@@ -92,13 +93,9 @@ function LocationsPanel({ kind }: { kind: 'pos' | 'site' }) {
                       </td>
                     )}
                     <td className="px-4 py-2.5">
-                      <div className="flex justify-end gap-1">
-                        <button onClick={() => setModal({ open: true, loc })} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
-                          <Pencil size={15} />
-                        </button>
-                        <button onClick={() => setConfirmDelete(loc.id)} className="rounded-lg p-1.5 text-red-500 hover:bg-red-50">
-                          <Trash2 size={15} />
-                        </button>
+                      <div className="flex flex-nowrap justify-end gap-1">
+                        <ActionButton icon={Pencil} label="Edit" tone="slate" iconOnly onClick={() => setModal({ open: true, loc })} />
+                        <ActionButton icon={Trash2} label="Hapus" tone="red" iconOnly onClick={() => setConfirmDelete(loc.id)} />
                       </div>
                     </td>
                   </tr>
@@ -147,15 +144,15 @@ function StockPanel() {
       </div>
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left text-sm">
+          <table className="w-full min-w-[820px] table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-4 py-2.5 font-medium">Label Batch</th>
-                <th className="px-4 py-2.5 font-medium">Pos</th>
-                <th className="px-4 py-2.5 font-medium">Jumlah</th>
-                <th className="px-4 py-2.5 font-medium">Panjang/Unit</th>
-                <th className="px-4 py-2.5 font-medium">Kondisi</th>
-                <th className="px-4 py-2.5 font-medium text-right">Aksi</th>
+                <th className="w-[240px] px-4 py-2.5 font-medium">Label Batch</th>
+                <th className="w-[170px] px-4 py-2.5 font-medium">Pos</th>
+                <th className="w-[100px] px-4 py-2.5 font-medium">Jumlah</th>
+                <th className="w-[120px] px-4 py-2.5 font-medium">Panjang/Unit</th>
+                <th className="w-[140px] px-4 py-2.5 font-medium">Kondisi</th>
+                <th className="w-[90px] px-4 py-2.5 font-medium text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -163,19 +160,15 @@ function StockPanel() {
                 const pos = db.locations.find((l) => l.id === batch.posId)
                 return (
                   <tr key={batch.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-2.5 font-medium text-slate-700">{batch.label}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{pos?.name ?? '-'}</td>
+                    <td className="px-4 py-2.5 font-medium text-slate-700"><div className="truncate">{batch.label}</div></td>
+                    <td className="px-4 py-2.5 text-slate-600"><div className="truncate">{pos?.name ?? '-'}</div></td>
                     <td className="px-4 py-2.5 text-slate-600">{batch.quantityUnits} unit</td>
                     <td className="px-4 py-2.5 text-slate-600">{batch.unitLengthMeters} m</td>
                     <td className="px-4 py-2.5"><Badge tone={conditionTone(batch.condition)}>{batch.condition}</Badge></td>
                     <td className="px-4 py-2.5">
-                      <div className="flex justify-end gap-1">
-                        <button onClick={() => setModal({ open: true, batch })} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
-                          <Pencil size={15} />
-                        </button>
-                        <button onClick={() => setConfirmDelete(batch.id)} className="rounded-lg p-1.5 text-red-500 hover:bg-red-50">
-                          <Trash2 size={15} />
-                        </button>
+                      <div className="flex flex-nowrap justify-end gap-1">
+                        <ActionButton icon={Pencil} label="Edit" tone="slate" iconOnly onClick={() => setModal({ open: true, batch })} />
+                        <ActionButton icon={Trash2} label="Hapus" tone="red" iconOnly onClick={() => setConfirmDelete(batch.id)} />
                       </div>
                     </td>
                   </tr>

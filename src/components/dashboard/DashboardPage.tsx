@@ -146,14 +146,14 @@ export function DashboardPage({ onNavigate }: { onNavigate: (p: PageKey) => void
       <Card className="mt-5">
         <CardHeader title="Riwayat Permintaan Terbaru" subtitle={`Hari ini: ${formatDateID(todayISO())}`} />
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[820px] table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-5 py-2.5 font-medium">No Permintaan</th>
-                <th className="px-5 py-2.5 font-medium">Peminta / Entity</th>
-                <th className="px-5 py-2.5 font-medium">Lokasi Kerja</th>
-                <th className="px-5 py-2.5 font-medium">Periode</th>
-                <th className="px-5 py-2.5 font-medium">Status</th>
+                <th className="w-[140px] px-5 py-2.5 font-medium">No Permintaan</th>
+                <th className="w-[200px] px-5 py-2.5 font-medium">Peminta / Entity</th>
+                <th className="w-[160px] px-5 py-2.5 font-medium">Lokasi Kerja</th>
+                <th className="w-[200px] px-5 py-2.5 font-medium">Periode</th>
+                <th className="w-[120px] px-5 py-2.5 font-medium">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -168,11 +168,21 @@ export function DashboardPage({ onNavigate }: { onNavigate: (p: PageKey) => void
                     <tr key={loan.id}>
                       <td className="px-5 py-2.5 font-medium text-slate-700">{loan.requestNumber}</td>
                       <td className="px-5 py-2.5 text-slate-600">
-                        {loan.requesterName}
-                        <div className="text-xs text-slate-400">{loan.entity}</div>
+                        <div className="truncate">{loan.requesterName}</div>
+                        <div className="truncate text-xs text-slate-400">{loan.entity}</div>
                       </td>
-                      <td className="px-5 py-2.5 text-slate-600">{site?.name ?? '-'}</td>
-                      <td className="px-5 py-2.5 text-slate-500">{formatDateID(loan.startDate)} - {formatDateID(loan.endDate)}</td>
+                      <td className="px-5 py-2.5 text-slate-600"><div className="truncate">{site?.name ?? '-'}</div></td>
+                      <td className="px-5 py-2.5 text-slate-500">
+                        <div className="flex flex-wrap items-baseline gap-x-1">
+                          <span>{formatDateID(loan.startDate)}</span>
+                          <span className="text-slate-300">&rarr;</span>
+                          {loan.endDateTBC || !loan.endDate ? (
+                            <span className="font-medium text-amber-600">TBC</span>
+                          ) : (
+                            <span>{formatDateID(loan.endDate)}</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-5 py-2.5">
                         <Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge>
                       </td>

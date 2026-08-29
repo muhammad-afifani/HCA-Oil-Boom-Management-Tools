@@ -4,6 +4,7 @@ import { useStore } from '../../store/useStore'
 import { Header } from '../layout/Header'
 import { Card } from '../ui/Card'
 import { StatCard } from '../ui/StatCard'
+import { ActionButton } from '../ui/ActionButton'
 import { Badge, loanStatusTone } from '../ui/Badge'
 import { inputClass } from '../ui/Field'
 import { effectiveLoanStatus, loanStatusLabel } from '../../lib/inventory'
@@ -73,16 +74,16 @@ export function RecapPage() {
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] text-left text-sm">
+          <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-4 py-2.5 font-medium">No / Peminta</th>
-                <th className="px-4 py-2.5 font-medium">Lokasi Kerja</th>
-                <th className="px-4 py-2.5 font-medium">Pos Asal</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Disetujui Oleh</th>
-                <th className="px-4 py-2.5 font-medium">Dokumentasi</th>
-                <th className="px-4 py-2.5 font-medium text-right">Aksi</th>
+                <th className="w-[190px] px-4 py-2.5 font-medium">No / Peminta</th>
+                <th className="w-[160px] px-4 py-2.5 font-medium">Lokasi Kerja</th>
+                <th className="w-[150px] px-4 py-2.5 font-medium">Pos Asal</th>
+                <th className="w-[110px] px-4 py-2.5 font-medium">Status</th>
+                <th className="w-[120px] px-4 py-2.5 font-medium">Disetujui Oleh</th>
+                <th className="w-[170px] px-4 py-2.5 font-medium">Dokumentasi</th>
+                <th className="w-[180px] px-4 py-2.5 font-medium text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -94,13 +95,13 @@ export function RecapPage() {
                   <tr key={loan.id} className="align-top hover:bg-slate-50/50">
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-700">{loan.requestNumber}</div>
-                      <div className="text-xs text-slate-500">{loan.requesterName}</div>
-                      <div className="text-xs text-slate-400">{loan.entity}</div>
+                      <div className="truncate text-xs text-slate-500">{loan.requesterName}</div>
+                      <div className="truncate text-xs text-slate-400">{loan.entity}</div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{site?.name ?? '-'}</td>
-                    <td className="px-4 py-3 text-slate-600">{pos?.name ?? '-'}</td>
+                    <td className="px-4 py-3 text-slate-600"><div className="truncate">{site?.name ?? '-'}</div></td>
+                    <td className="px-4 py-3 text-slate-600"><div className="truncate">{pos?.name ?? '-'}</div></td>
                     <td className="px-4 py-3"><Badge tone={loanStatusTone(status)}>{loanStatusLabel(status)}</Badge></td>
-                    <td className="px-4 py-3 text-slate-600">{loan.approvedBy || <span className="text-slate-300">-</span>}</td>
+                    <td className="px-4 py-3 text-slate-600"><div className="truncate">{loan.approvedBy || <span className="text-slate-300">-</span>}</div></td>
                     <td className="px-4 py-3">
                       {loan.installedPhotoDataUrl ? (
                         <button onClick={() => setInstallLoan(loan)} className="block">
@@ -109,22 +110,12 @@ export function RecapPage() {
                       ) : (
                         <span className="text-xs text-slate-300">Belum ada foto</span>
                       )}
-                      {loan.installedAt && <div className="mt-1 text-[11px] text-slate-400">Terpasang {formatDateID(loan.installedAt)}</div>}
+                      {loan.installedAt && <div className="mt-1 truncate text-[11px] text-slate-400">Terpasang {formatDateID(loan.installedAt)}</div>}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setInstallLoan(loan)}
-                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-200 transition-colors hover:bg-blue-100"
-                        >
-                          <Camera size={14} /> Update Pemasangan
-                        </button>
-                        <button
-                          onClick={() => setPrintLoan(loan)}
-                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-200"
-                        >
-                          <Printer size={14} /> Cetak Laporan
-                        </button>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <ActionButton icon={Camera} label="Update Pemasangan" tone="blue" onClick={() => setInstallLoan(loan)} />
+                        <ActionButton icon={Printer} label="Cetak Laporan" tone="slate" onClick={() => setPrintLoan(loan)} />
                       </div>
                     </td>
                   </tr>
