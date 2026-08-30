@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Search, Pencil, Trash2, CheckCircle2, PackageCheck, XCircle, ArrowUpDown, Layers, PackageOpen, PauseCircle, ListChecks } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { Header } from '../layout/Header'
@@ -51,6 +51,18 @@ export function LoansPage() {
   const [modalState, setModalState] = useState<{ open: boolean; loan?: LoanRequest }>({ open: false })
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [returnChoiceFor, setReturnChoiceFor] = useState<LoanRequest | null>(null)
+
+  // Table header sticks right below the toolbar — measure it so the offset stays correct
+  // even if the toolbar wraps to two lines on narrow screens.
+  const toolbarRef = useRef<HTMLDivElement>(null)
+  const [toolbarHeight, setToolbarHeight] = useState(0)
+  useEffect(() => {
+    const el = toolbarRef.current
+    if (!el) return
+    const ro = new ResizeObserver((entries) => setToolbarHeight(entries[0].contentRect.height))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const posList = useMemo(() => db.locations.filter((l) => l.type === 'pos'), [db.locations])
   const summary = useMemo(() => {
@@ -118,7 +130,7 @@ export function LoansPage() {
         </Card>
       </div>
 
-      <div className="sticky top-0 z-20 mb-4 flex flex-wrap items-center gap-2 bg-slate-100 py-2">
+      <div ref={toolbarRef} className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-100 py-3">
         <div className="relative">
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -148,22 +160,21 @@ export function LoansPage() {
         </Button>
       </div>
 
-      <Card className="overflow-hidden">
-        <div className="max-h-[65vh] overflow-auto">
-          <table className="w-full min-w-[1220px] table-fixed text-left text-sm">
-            <thead>
-              <tr className="text-xs uppercase tracking-wide text-slate-400">
-                <th className="sticky top-0 z-10 w-[180px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">No / Peminta</th>
-                <th className="sticky top-0 z-10 w-[190px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Fungsi &amp; Pekerjaan</th>
-                <th className="sticky top-0 z-10 w-[120px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Lokasi Kerja</th>
-                <th className="sticky top-0 z-10 w-[140px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Dipindah / Diambil Dari</th>
-                <th className="sticky top-0 z-10 w-[80px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Jumlah</th>
-                <th className="sticky top-0 z-10 w-[200px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Periode</th>
-                <th className="sticky top-0 z-10 w-[110px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Status</th>
-                <th className="sticky top-0 z-10 w-[180px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+      <Card>
+        <table className="w-full min-w-[1220px] table-fixed text-left text-sm">
+          <thead className="sticky z-10" style={{ top: toolbarHeight }}>
+            <tr className="text-xs uppercase tracking-wide text-slate-400">
+              <th className="rounded-tl-2xl w-[180px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">No / Peminta</th>
+              <th className="w-[190px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Fungsi &amp; Pekerjaan</th>
+              <th className="w-[120px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Lokasi Kerja</th>
+              <th className="w-[140px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Dipindah / Diambil Dari</th>
+              <th className="w-[80px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Jumlah</th>
+              <th className="w-[200px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Periode</th>
+              <th className="w-[110px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Status</th>
+              <th className="rounded-tr-2xl w-[180px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
               {filtered.map((loan) => {
                 const site = db.locations.find((l) => l.id === loan.siteLocationId)
                 const pos = db.locations.find((l) => l.id === loan.sourcePosId)
@@ -269,9 +280,8 @@ export function LoansPage() {
                   </td>
                 </tr>
               )}
-            </tbody>
-          </table>
-        </div>
+          </tbody>
+        </table>
       </Card>
 
       <LoanFormModal open={modalState.open} loan={modalState.loan} onClose={() => setModalState({ open: false })} />

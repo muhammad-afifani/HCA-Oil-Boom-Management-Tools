@@ -40,7 +40,7 @@ function App() {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100">
       <Sidebar page={page} onNavigate={setPage} />
-      <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
+      <main className="flex-1 overflow-x-auto overflow-y-auto pb-16 md:pb-0">
         <div className="mx-auto max-w-7xl p-4 md:p-8">
           <Suspense fallback={<PageFallback />}>
             <AnimatePresence mode="wait">
