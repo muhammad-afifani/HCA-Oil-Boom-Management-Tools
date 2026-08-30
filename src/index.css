@@ -32,6 +32,10 @@ body {
 .leaflet-container {
   font-family: inherit;
   background: #dbeafe;
+  /* Leaflet's internal panes/controls use z-index up to 1000. Without their own stacking
+     context, those values compare directly against unrelated page elements (e.g. a modal's
+     z-50 backdrop) and can render on top of them. Isolating scopes Leaflet's z-index to itself. */
+  isolation: isolate;
 }
 
 .leaflet-popup-content-wrapper {
@@ -50,6 +54,22 @@ body {
   0% { transform: scale(0.6); opacity: 0.45; }
   70% { transform: scale(1.8); opacity: 0; }
   100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* Subtle row-background pulse for loan statuses that need ongoing attention (in use / overdue). */
+.row-pulse-blue {
+  animation: row-pulse-blue 2.4s ease-in-out infinite;
+}
+@keyframes row-pulse-blue {
+  0%, 100% { background-color: rgba(37, 99, 235, 0.05); }
+  50% { background-color: rgba(37, 99, 235, 0.14); }
+}
+.row-pulse-red {
+  animation: row-pulse-red 1.7s ease-in-out infinite;
+}
+@keyframes row-pulse-red {
+  0%, 100% { background-color: rgba(220, 38, 38, 0.06); }
+  50% { background-color: rgba(220, 38, 38, 0.16); }
 }
 
 @media print {

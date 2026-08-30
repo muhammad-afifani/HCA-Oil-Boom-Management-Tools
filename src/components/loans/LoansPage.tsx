@@ -20,6 +20,26 @@ type SortKey = 'endDate' | 'requestDate' | 'startDate'
 
 const statusFilters: (LoanStatus | 'Terlambat' | 'Semua')[] = ['Semua', 'Pending', 'Disetujui', 'Aktif', 'Terlambat', 'Selesai', 'Dibatalkan']
 
+/** Row background tint matching each status's badge color — pulses gently for statuses needing attention. */
+function rowToneClass(status: LoanStatus | 'Terlambat'): string {
+  switch (status) {
+    case 'Aktif':
+      return 'bg-blue-50/40 row-pulse-blue'
+    case 'Terlambat':
+      return 'bg-red-50/50 row-pulse-red'
+    case 'Pending':
+      return 'bg-amber-50/30'
+    case 'Disetujui':
+      return 'bg-teal-50/25'
+    case 'Selesai':
+      return 'bg-emerald-50/20'
+    case 'Dibatalkan':
+      return 'bg-slate-50/60 opacity-70'
+    default:
+      return ''
+  }
+}
+
 export function LoansPage() {
   const db = useStore((s) => s.db)
   const updateLoan = useStore((s) => s.updateLoan)
@@ -98,7 +118,7 @@ export function LoansPage() {
         </Card>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="sticky top-0 z-20 mb-4 flex flex-wrap items-center gap-2 bg-slate-100 py-2">
         <div className="relative">
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -129,18 +149,18 @@ export function LoansPage() {
       </div>
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="max-h-[65vh] overflow-auto">
           <table className="w-full min-w-[1220px] table-fixed text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
-                <th className="w-[180px] px-4 py-2.5 font-medium">No / Peminta</th>
-                <th className="w-[190px] px-4 py-2.5 font-medium">Fungsi &amp; Pekerjaan</th>
-                <th className="w-[120px] px-4 py-2.5 font-medium">Lokasi Kerja</th>
-                <th className="w-[140px] px-4 py-2.5 font-medium">Floating Storage Asal</th>
-                <th className="w-[80px] px-4 py-2.5 font-medium">Jumlah</th>
-                <th className="w-[200px] px-4 py-2.5 font-medium">Periode</th>
-                <th className="w-[110px] px-4 py-2.5 font-medium">Status</th>
-                <th className="w-[180px] px-4 py-2.5 font-medium text-right">Aksi</th>
+              <tr className="text-xs uppercase tracking-wide text-slate-400">
+                <th className="sticky top-0 z-10 w-[180px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">No / Peminta</th>
+                <th className="sticky top-0 z-10 w-[190px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Fungsi &amp; Pekerjaan</th>
+                <th className="sticky top-0 z-10 w-[120px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Lokasi Kerja</th>
+                <th className="sticky top-0 z-10 w-[140px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Dipindah / Diambil Dari</th>
+                <th className="sticky top-0 z-10 w-[80px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Jumlah</th>
+                <th className="sticky top-0 z-10 w-[200px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Periode</th>
+                <th className="sticky top-0 z-10 w-[110px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium">Status</th>
+                <th className="sticky top-0 z-10 w-[180px] border-b border-slate-200 bg-slate-50 px-4 py-2.5 font-medium text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -151,7 +171,7 @@ export function LoansPage() {
                 const days = loanDaysRemaining(loan)
                 const duration = loan.endDateTBC || !loan.endDate ? null : planDurationDays(loan.startDate, loan.endDate)
                 return (
-                  <tr key={loan.id} className="align-top hover:bg-slate-50/50">
+                  <tr key={loan.id} className={`align-top transition-[filter] hover:brightness-[0.97] ${rowToneClass(status)}`}>
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-700">{loan.requestNumber}</div>
                       <div className="truncate text-xs text-slate-500">{loan.requesterName}</div>
