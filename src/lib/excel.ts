@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import type { AppDatabase, BoomCondition, LoanAllocation, LoanPriority, LoanRequest, LoanStatus, LocationType, MapLocation, StockBatch } from '../types'
+import type { AppDatabase, BoomCondition, LoanAllocation, LoanPriority, LoanRequest, LoanStatus, LocationType, MapLocation, OtherStockItem, StockBatch } from '../types'
 import { makeId } from './id'
 import { downloadBlob, dateStamp } from './jsonIO'
 import { loanStatusLabel } from './inventory'
@@ -17,6 +17,15 @@ for (const s of STATUSES) {
   STATUS_LABEL_TO_VALUE[s.toLowerCase()] = s
 }
 
+// Single source of truth for the Lokasi sheet's column order.
+const LOC_HEADERS = [
+  'ID', 'Nama', 'Kode', 'Tipe (pos/sumur/platform/cluster/lainnya)', 'Area', 'Latitude', 'Longitude', 'Deskripsi',
+  'Gudang Pusat (Ya/Tidak)', 'Peralatan Lain (nama:jumlah:satuan, nama:jumlah:satuan, ...)',
+] as const
+const LOC_COL: Record<(typeof LOC_HEADERS)[number], number> = Object.fromEntries(
+  LOC_HEADERS.map((h, i) => [h, i + 1]),
+) as Record<(typeof LOC_HEADERS)[number], number>
+
 // Single source of truth for the Peminjaman sheet's column order — export and import both
 // derive their column indices from this array so they can never drift out of sync.
 const LOAN_HEADERS = [
@@ -24,7 +33,8 @@ const LOAN_HEADERS = [
   'Deskripsi Pekerjaan', 'Lokasi Kerja Kode', 'Lokasi Kerja Nama', 'Pos Asal Kode', 'Pos Asal Nama',
   'Pos Tambahan (kode:jumlah, kode:jumlah, ...)', 'Jumlah Unit', 'Panjang per Unit (m)',
   'Tgl Request', 'Tgl Mulai', 'Tgl Selesai Rencana', 'Selesai TBC (Ya/Tidak)', 'Tgl Kembali Aktual',
-  'Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)', 'Prioritas', 'Disetujui Oleh (ENV)', 'Catatan',
+  'Kembali Ke (Pos/Standby)', 'Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)', 'Prioritas',
+  'Disetujui Oleh (ENV)', 'Catatan',
 ] as const
 
 const COL: Record<(typeof LOAN_HEADERS)[number], number> = Object.fromEntries(
@@ -68,6 +78,21 @@ function decodeAdditionalSources(raw: string, locations: MapLocation[], warnings
   return result
 }
 
+function encodeOtherItems(items: OtherStockItem[] | undefined): string {
+  return (items ?? []).filter((it) => it.name.trim()).map((it) => `${it.name}:${it.quantity}:${it.unit}`).join(', ')
+}
+
+function decodeOtherItems(raw: string): OtherStockItem[] {
+  if (!raw.trim()) return []
+  const result: OtherStockItem[] = []
+  for (const part of raw.split(',').map((s) => s.trim()).filter(Boolean)) {
+    const [name, qtyRaw, unit] = part.split(':').map((s) => s.trim())
+    if (!name) continue
+    result.push({ id: makeId('item'), name, quantity: Number(qtyRaw) || 0, unit: unit || 'unit' })
+  }
+  return result
+}
+
 export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
   const wb = new ExcelJS.Workbook()
   wb.creator = 'HCA Oil Boom Management Tools'
@@ -87,9 +112,12 @@ export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
 
   // --- Lokasi (Pos & Site) ---
   const wsLoc = wb.addWorksheet('Lokasi')
-  headerRow(wsLoc, ['ID', 'Nama', 'Kode', 'Tipe (pos/sumur/platform/cluster/lainnya)', 'Area', 'Latitude', 'Longitude', 'Deskripsi'])
+  headerRow(wsLoc, LOC_HEADERS)
   for (const l of db.locations) {
-    wsLoc.addRow([l.id, l.name, l.code ?? '', l.type, l.area ?? '', l.lat, l.lng, l.description ?? ''])
+    wsLoc.addRow([
+      l.id, l.name, l.code ?? '', l.type, l.area ?? '', l.lat, l.lng, l.description ?? '',
+      l.isWarehouse ? 'Ya' : 'Tidak', encodeOtherItems(l.otherItems),
+    ])
   }
   wsLoc.columns.forEach((c) => (c.width = 18))
 
@@ -129,6 +157,7 @@ export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
     row[COL['Tgl Selesai Rencana'] - 1] = l.endDateTBC ? '' : l.endDate
     row[COL['Selesai TBC (Ya/Tidak)'] - 1] = l.endDateTBC ? 'Ya' : 'Tidak'
     row[COL['Tgl Kembali Aktual'] - 1] = l.actualReturnDate ?? ''
+    row[COL['Kembali Ke (Pos/Standby)'] - 1] = l.returnedTo === 'standby' ? 'Standby' : l.status === 'Selesai' ? 'Pos' : ''
     row[COL['Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)'] - 1] = loanStatusLabel(l.status)
     row[COL['Prioritas'] - 1] = l.priority
     row[COL['Disetujui Oleh (ENV)'] - 1] = l.approvedBy ?? ''
@@ -183,21 +212,23 @@ export async function importDatabaseFromExcel(file: File, current: AppDatabase):
   if (!wsLoc) throw new Error('Sheet "Lokasi" tidak ditemukan di file Excel')
   wsLoc.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return
-    const name = cellStr(row, 2)
+    const name = cellStr(row, LOC_COL['Nama'])
     if (!name) return
-    const typeRaw = cellStr(row, 4).toLowerCase() as LocationType
+    const typeRaw = cellStr(row, LOC_COL['Tipe (pos/sumur/platform/cluster/lainnya)']).toLowerCase() as LocationType
     const type = LOCATION_TYPES.includes(typeRaw) ? typeRaw : 'lainnya'
-    if (!LOCATION_TYPES.includes(typeRaw)) warnings.push(`Baris Lokasi ${rowNumber}: tipe "${cellStr(row, 4)}" tidak dikenal, diset "lainnya"`)
+    if (!LOCATION_TYPES.includes(typeRaw)) warnings.push(`Baris Lokasi ${rowNumber}: tipe "${cellStr(row, LOC_COL['Tipe (pos/sumur/platform/cluster/lainnya)'])}" tidak dikenal, diset "lainnya"`)
     const now = new Date().toISOString()
     locations.push({
-      id: cellStr(row, 1) || makeId('loc'),
+      id: cellStr(row, LOC_COL['ID']) || makeId('loc'),
       name,
-      code: cellStr(row, 3) || undefined,
+      code: cellStr(row, LOC_COL['Kode']) || undefined,
       type,
-      area: cellStr(row, 5) || undefined,
-      lat: cellNum(row, 6),
-      lng: cellNum(row, 7),
-      description: cellStr(row, 8) || undefined,
+      area: cellStr(row, LOC_COL['Area']) || undefined,
+      lat: cellNum(row, LOC_COL['Latitude']),
+      lng: cellNum(row, LOC_COL['Longitude']),
+      description: cellStr(row, LOC_COL['Deskripsi']) || undefined,
+      isWarehouse: cellStr(row, LOC_COL['Gudang Pusat (Ya/Tidak)']).toLowerCase().startsWith('y') || undefined,
+      otherItems: decodeOtherItems(cellStr(row, LOC_COL['Peralatan Lain (nama:jumlah:satuan, nama:jumlah:satuan, ...)'])),
       createdAt: now,
       updatedAt: now,
     })
@@ -253,6 +284,8 @@ export async function importDatabaseFromExcel(file: File, current: AppDatabase):
       const priorityRaw = cellStr(row, COL['Prioritas']) as LoanPriority
       const priority = PRIORITIES.includes(priorityRaw) ? priorityRaw : 'Normal'
       const endDateTBC = cellStr(row, COL['Selesai TBC (Ya/Tidak)']).toLowerCase().startsWith('y')
+      const returnedToRaw = cellStr(row, COL['Kembali Ke (Pos/Standby)']).toLowerCase()
+      const returnedTo = returnedToRaw === 'standby' ? 'standby' : returnedToRaw === 'pos' ? 'pos' : undefined
       const now = new Date().toISOString()
       loans.push({
         id: cellStr(row, COL['ID']) || makeId('loan'),
@@ -273,6 +306,7 @@ export async function importDatabaseFromExcel(file: File, current: AppDatabase):
         endDate: endDateTBC ? '' : cellStr(row, COL['Tgl Selesai Rencana']),
         endDateTBC,
         actualReturnDate: cellStr(row, COL['Tgl Kembali Aktual']) || undefined,
+        returnedTo,
         status,
         priority,
         approvedBy: cellStr(row, COL['Disetujui Oleh (ENV)']) || undefined,
@@ -290,8 +324,8 @@ export async function importDatabaseFromExcel(file: File, current: AppDatabase):
 export async function downloadExcelTemplate(): Promise<void> {
   const wb = new ExcelJS.Workbook()
   const wsLoc = wb.addWorksheet('Lokasi')
-  headerRow(wsLoc, ['ID', 'Nama', 'Kode', 'Tipe (pos/sumur/platform/cluster/lainnya)', 'Area', 'Latitude', 'Longitude', 'Deskripsi'])
-  wsLoc.addRow(['', 'Pos Contoh', 'POS-99', 'pos', 'Area X', -0.8414, 117.2783, 'Contoh baris, silakan hapus'])
+  headerRow(wsLoc, LOC_HEADERS)
+  wsLoc.addRow(['', 'Pos Contoh', 'POS-99', 'pos', 'Area X', -0.8414, 117.2783, 'Contoh baris, silakan hapus', 'Tidak', ''])
   wsLoc.columns.forEach((c) => (c.width = 20))
 
   const wsStock = wb.addWorksheet('Stok Boom')

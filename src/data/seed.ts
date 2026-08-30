@@ -38,7 +38,21 @@ export const posDeltaSelatan = loc('Pos Delta Selatan', 'pos', -0.90874, 117.251
 export const posDeltaTimur = loc('Pos Delta Timur', 'pos', -0.83015, 117.35664, 'POS-04', 'Delta Timur')
 export const posMuaraJawa = loc('Pos Muara Jawa', 'pos', -0.87652, 117.20073, 'POS-05', 'Muara Jawa')
 
-export const seedPosList = [posUtama, posDeltaUtara, posDeltaSelatan, posDeltaTimur, posMuaraJawa]
+// Central backup warehouse — large boom reserve plus other spill-response equipment (informational stock).
+export const osrWarehouse: MapLocation = {
+  ...loc('OSR Warehouse - Gudang Pusat', 'pos', -0.85920, 117.26510, 'OSR-WH', 'Base Camp'),
+  isWarehouse: true,
+  description: 'Gudang pusat backup — cadangan oil boom skala besar dan peralatan tanggap darurat tumpahan minyak lainnya, dipakai saat stok di pos-pos lapangan habis.',
+  otherItems: [
+    { id: makeId('item'), name: 'Skimmer Portable', quantity: 6, unit: 'unit' },
+    { id: makeId('item'), name: 'Absorbent Pad', quantity: 800, unit: 'lembar' },
+    { id: makeId('item'), name: 'Dispersant Chemical', quantity: 40, unit: 'drum' },
+    { id: makeId('item'), name: 'PPE Set (sarung tangan, coverall, masker)', quantity: 150, unit: 'set' },
+    { id: makeId('item'), name: 'Oil Boom Reel / Winch', quantity: 4, unit: 'unit' },
+  ],
+}
+
+export const seedPosList = [posUtama, posDeltaUtara, posDeltaSelatan, posDeltaTimur, posMuaraJawa, osrWarehouse]
 
 // --- Work locations (sumur / platform / cluster) where spill-risk work happens ---
 export const siteA = loc('Sumur MHK-101', 'sumur', -0.80532, 117.29811, 'MHK-101', 'Delta Utara')
@@ -85,6 +99,9 @@ export const seedStockBatches: StockBatch[] = [
   batch(posDeltaTimur.id, 'Boom Oranye 15m', 15, 15, 'Baik'),
   batch(posDeltaTimur.id, 'Boom Oranye 15m', 5, 15, 'Rusak Berat'),
   batch(posMuaraJawa.id, 'Boom Kuning 15m', 18, 15, 'Baik'),
+  batch(osrWarehouse.id, 'Boom Kuning 15m - Cadangan Utama', 60, 15, 'Baik'),
+  batch(osrWarehouse.id, 'Boom Oranye 15m - Cadangan Utama', 40, 15, 'Baik'),
+  batch(osrWarehouse.id, 'Boom Kuning 15m - Cadangan (perlu servis)', 8, 15, 'Rusak Ringan'),
 ]
 
 // --- Loan requests (peminjaman oil boom) ---
@@ -306,8 +323,8 @@ export function buildSeedDatabase(): AppDatabase {
   return {
     version: 1,
     settings: {
-      companyName: 'HCA Environment Department',
-      siteName: 'HCA Site - Delta Mahakam',
+      companyName: 'Pertamina Hulu Mahakam',
+      siteName: 'Environment Dept - Delta Mahakam',
       centerLat: SITE_CENTER.lat,
       centerLng: SITE_CENTER.lng,
       defaultUnitLengthMeters: 15,

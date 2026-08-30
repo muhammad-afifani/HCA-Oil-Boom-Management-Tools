@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Plus, Pencil, Trash2, Settings } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Plus, Pencil, Trash2, Settings, Image as ImageIcon, Upload, X } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { Header } from '../layout/Header'
 import { Card } from '../ui/Card'
@@ -10,6 +10,7 @@ import { Field, inputClass } from '../ui/Field'
 import { LocationFormModal } from './LocationFormModal'
 import { StockFormModal } from './StockFormModal'
 import { summarizePosStock } from '../../lib/inventory'
+import { resizeLogoToDataUrl } from '../../lib/image'
 import type { MapLocation, StockBatch } from '../../types'
 
 type Tab = 'pos' | 'site' | 'stock' | 'settings'
@@ -82,7 +83,10 @@ function LocationsPanel({ kind }: { kind: 'pos' | 'site' }) {
                 const stock = kind === 'pos' ? summarizePosStock(db.stockBatches, db.loans, loc.id) : null
                 return (
                   <tr key={loc.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-2.5 font-medium text-slate-700"><div className="truncate">{loc.name}</div></td>
+                    <td className="px-4 py-2.5 font-medium text-slate-700">
+                      <div className="truncate">{loc.name}</div>
+                      {loc.isWarehouse && <Badge tone="violet">Gudang Pusat</Badge>}
+                    </td>
                     <td className="px-4 py-2.5 text-slate-500"><div className="truncate">{loc.code ?? '-'}</div></td>
                     {kind === 'site' && <td className="px-4 py-2.5 capitalize text-slate-600">{loc.type}</td>}
                     <td className="px-4 py-2.5 text-slate-500"><div className="truncate">{loc.area ?? '-'}</div></td>
@@ -206,6 +210,18 @@ function SettingsPanel() {
   const resetToSeedData = useStore((s) => s.resetToSeedData)
   const clearAllData = useStore((s) => s.clearAllData)
   const [confirmReset, setConfirmReset] = useState<'seed' | 'clear' | null>(null)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
+
+  const handleLogoFile = async (file: File) => {
+    setLogoError(null)
+    try {
+      const dataUrl = await resizeLogoToDataUrl(file)
+      updateSettings({ logoDataUrl: dataUrl })
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : 'Gagal memproses logo')
+    }
+  }
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -214,6 +230,32 @@ function SettingsPanel() {
           <Settings size={15} /> Pengaturan Umum
         </div>
         <div className="grid grid-cols-1 gap-4">
+          <Field label="Logo Perusahaan">
+            <div className="flex items-center gap-3">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                {db.settings.logoDataUrl ? (
+                  <img src={db.settings.logoDataUrl} alt="Logo" className="h-full w-full object-contain" />
+                ) : (
+                  <ImageIcon size={20} className="text-slate-300" />
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoFile(e.target.files[0])} />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => logoInputRef.current?.click()}>
+                    <Upload size={13} /> Upload Logo (PNG)
+                  </Button>
+                  {db.settings.logoDataUrl && (
+                    <Button size="sm" variant="danger" onClick={() => updateSettings({ logoDataUrl: undefined })}>
+                      <X size={13} /> Hapus
+                    </Button>
+                  )}
+                </div>
+                <span className="text-xs text-slate-400">Muncul di menu bar kiri &amp; tab browser. PNG transparan disarankan.</span>
+                {logoError && <span className="text-xs text-red-600">{logoError}</span>}
+              </div>
+            </div>
+          </Field>
           <Field label="Nama Perusahaan / Departemen">
             <input className={inputClass} value={db.settings.companyName} onChange={(e) => updateSettings({ companyName: e.target.value })} />
           </Field>

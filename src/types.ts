@@ -2,6 +2,15 @@
 
 export type LocationType = 'pos' | 'sumur' | 'platform' | 'cluster' | 'lainnya'
 
+/** A non-boom item stocked at a location (mainly the central warehouse) — informational only. */
+export interface OtherStockItem {
+  id: string
+  name: string
+  quantity: number
+  unit: string
+  notes?: string
+}
+
 export interface MapLocation {
   id: string
   name: string
@@ -11,6 +20,10 @@ export interface MapLocation {
   lng: number
   area?: string // e.g. sub-area / field name
   description?: string
+  /** Marks a pos as the central backup warehouse (e.g. "OSR Warehouse") — shown distinctly on the map. */
+  isWarehouse?: boolean
+  /** Other spill-response equipment kept alongside boom at this location (mainly the warehouse). */
+  otherItems?: OtherStockItem[]
   createdAt: string
   updatedAt: string
 }
@@ -66,6 +79,13 @@ export interface LoanRequest {
   /** True when the planned end date isn't known yet ("TBC") — endDate may be blank in that case. */
   endDateTBC?: boolean
   actualReturnDate?: string
+  /**
+   * Where the boom physically ended up once this loan reached "Selesai".
+   * 'pos' (default) = hauled back to sourcePosId, folded back into normal pos stock.
+   * 'standby' = left on standby at siteLocationId instead of being transported back — the next
+   * request can pick it up directly from there without waiting for a pos run.
+   */
+  returnedTo?: 'pos' | 'standby'
   status: LoanStatus
   priority: LoanPriority
   notes?: string
@@ -83,6 +103,8 @@ export interface AppSettings {
   centerLat: number
   centerLng: number
   defaultUnitLengthMeters: number
+  /** Company logo (PNG, uploaded by the user) shown in the sidebar and browser tab favicon. */
+  logoDataUrl?: string
 }
 
 export interface AppDatabase {

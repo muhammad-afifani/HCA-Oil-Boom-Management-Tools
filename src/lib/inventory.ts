@@ -21,6 +21,16 @@ export function getLoanAllocations(loan: LoanRequest): LoanAllocation[] {
   return allocations
 }
 
+/** Units reserved (Pending/Disetujui/Aktif) against a given location, whether it's a pos or a standby site. */
+export function reservedUnitsAtLocation(loans: LoanRequest[], locationId: string): number {
+  return loans
+    .filter((l) => RESERVING_STATUSES.includes(l.status))
+    .reduce((sum, l) => {
+      const forThisLocation = getLoanAllocations(l).find((a) => a.posId === locationId)
+      return sum + (forThisLocation?.quantityUnits ?? 0)
+    }, 0)
+}
+
 export interface PosStockSummary {
   posId: string
   baikUnits: number
@@ -47,12 +57,7 @@ export function summarizePosStock(
   const usableUnits = baikUnits + rusakRinganUnits
   const totalUnits = usableUnits + rusakBeratUnits
 
-  const reservedUnits = loans
-    .filter((l) => RESERVING_STATUSES.includes(l.status))
-    .reduce((sum, l) => {
-      const forThisPos = getLoanAllocations(l).find((a) => a.posId === posId)
-      return sum + (forThisPos?.quantityUnits ?? 0)
-    }, 0)
+  const reservedUnits = reservedUnitsAtLocation(loans, posId)
 
   const availableUnits = Math.max(0, usableUnits - reservedUnits)
 

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { LayoutDashboard, MapPinned, ClipboardList, ListOrdered, Boxes, FileText, DatabaseBackup, Waves } from 'lucide-react'
+import { useStore } from '../../store/useStore'
 import type { PageKey } from '../../App'
 
 const items: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
@@ -13,15 +14,22 @@ const items: { key: PageKey; label: string; icon: typeof LayoutDashboard }[] = [
 ]
 
 export function Sidebar({ page, onNavigate }: { page: PageKey; onNavigate: (p: PageKey) => void }) {
+  const settings = useStore((s) => s.db.settings)
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-white">
-          <Waves size={18} />
-        </span>
-        <div>
-          <div className="text-sm font-semibold text-slate-800 leading-tight">Oil Boom Tools</div>
-          <div className="text-[11px] text-slate-400 leading-tight">HCA Site - Env Dept</div>
+        {settings.logoDataUrl ? (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50">
+            <img src={settings.logoDataUrl} alt={settings.companyName} className="h-full w-full object-contain" />
+          </span>
+        ) : (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white">
+            <Waves size={18} />
+          </span>
+        )}
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-slate-800 leading-tight">{settings.companyName || 'Oil Boom Tools'}</div>
+          <div className="truncate text-[11px] text-slate-400 leading-tight">{settings.siteName || 'HCA Site - Env Dept'}</div>
         </div>
       </div>
       <nav className="flex-1 space-y-1 px-3">

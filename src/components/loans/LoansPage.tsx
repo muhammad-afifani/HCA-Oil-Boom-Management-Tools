@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react'
-import { Plus, Search, Pencil, Trash2, CheckCircle2, PackageCheck, XCircle, ArrowUpDown } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, CheckCircle2, PackageCheck, XCircle, ArrowUpDown, Layers, PackageOpen, PauseCircle, ListChecks } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { Header } from '../layout/Header'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { ActionButton } from '../ui/ActionButton'
+import { StatCard } from '../ui/StatCard'
 import { Badge, loanStatusTone, priorityTone } from '../ui/Badge'
 import { inputClass } from '../ui/Field'
-import { effectiveLoanStatus, loanDaysRemaining, loanStatusLabel } from '../../lib/inventory'
+import { effectiveLoanStatus, loanDaysRemaining, loanStatusLabel, summarizePosStock } from '../../lib/inventory'
+import { getAllStandbySupply } from '../../lib/standby'
 import { formatDateID, planDurationDays, todayISO } from '../../lib/date'
 import { LoanFormModal } from './LoanFormModal'
+import { UsageTimeline } from './UsageTimeline'
 import type { LoanRequest, LoanStatus } from '../../types'
 
 type SortKey = 'endDate' | 'requestDate' | 'startDate'
@@ -26,6 +29,18 @@ export function LoansPage() {
   const [sortKey, setSortKey] = useState<SortKey>('endDate')
   const [modalState, setModalState] = useState<{ open: boolean; loan?: LoanRequest }>({ open: false })
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [returnChoiceFor, setReturnChoiceFor] = useState<LoanRequest | null>(null)
+
+  const posList = useMemo(() => db.locations.filter((l) => l.type === 'pos'), [db.locations])
+  const summary = useMemo(() => {
+    const inUse = db.loans.filter((l) => l.status === 'Aktif').reduce((s, l) => s + l.quantityUnits, 0)
+    const posAvailable = posList.reduce((s, p) => s + summarizePosStock(db.stockBatches, db.loans, p.id).availableUnits, 0)
+    const standby = getAllStandbySupply(db.loans, db.locations)
+    const standbyUnits = standby.reduce((s, x) => s + x.availableUnits, 0)
+    const selesaiCount = db.loans.filter((l) => l.status === 'Selesai').length
+    const totalStockUnits = posList.reduce((s, p) => s + summarizePosStock(db.stockBatches, db.loans, p.id).usableUnits, 0)
+    return { inUse, posAvailable, standbyUnits, standbySites: standby.length, selesaiCount, totalStockUnits }
+  }, [db.loans, db.locations, db.stockBatches, posList])
 
   const filtered = useMemo(() => {
     let list = db.loans.slice()
@@ -51,13 +66,27 @@ export function LoansPage() {
 
   const quickApprove = (loan: LoanRequest) => updateLoan(loan.id, { status: 'Disetujui' })
   const quickActivate = (loan: LoanRequest) => updateLoan(loan.id, { status: 'Aktif' })
-  const quickReturn = (loan: LoanRequest) =>
-    updateLoan(loan.id, { status: 'Selesai', actualReturnDate: todayISO() })
+  const confirmReturn = (loan: LoanRequest, returnedTo: 'pos' | 'standby') => {
+    updateLoan(loan.id, { status: 'Selesai', actualReturnDate: todayISO(), returnedTo })
+    setReturnChoiceFor(null)
+  }
   const quickCancel = (loan: LoanRequest) => updateLoan(loan.id, { status: 'Dibatalkan' })
 
   return (
     <div>
       <Header title="Peminjaman Oil Boom" subtitle="Kelola permintaan, status, dan prioritas pengembalian oil boom." />
+
+      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="Sedang Digunakan" value={summary.inUse} suffix=" unit" icon={PackageOpen} tone="blue" />
+        <StatCard label="Tersedia (Pos + Standby)" value={summary.posAvailable + summary.standbyUnits} suffix=" unit" icon={Layers} tone="teal" />
+        <StatCard label="Standby di Lokasi Kerja" value={summary.standbyUnits} suffix=" unit" sub={`di ${summary.standbySites} lokasi`} icon={PauseCircle} tone="amber" />
+        <StatCard label="Selesai Digunakan" value={summary.selesaiCount} suffix=" permintaan" icon={ListChecks} tone="slate" />
+      </div>
+
+      <Card className="mb-5 overflow-x-auto p-4">
+        <div className="mb-2 text-xs font-semibold text-slate-600">Kepadatan Pemakaian Boom — {`${summary.totalStockUnits}`} unit dalam 42 hari ke depan</div>
+        <UsageTimeline loans={db.loans} totalStockUnits={summary.totalStockUnits} />
+      </Card>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative">
@@ -131,6 +160,9 @@ export function LoansPage() {
                       {(loan.additionalSources?.length ?? 0) > 0 && (
                         <div className="text-xs text-teal-600">+{loan.additionalSources!.length} pos lain</div>
                       )}
+                      {loan.status === 'Selesai' && loan.returnedTo === 'standby' && (
+                        <div className="mt-1"><Badge tone="amber">Standby di lokasi</Badge></div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {loan.quantityUnits} unit
@@ -187,7 +219,7 @@ export function LoansPage() {
                             label="Selesai"
                             title="Tandai selesai / boom dikembalikan"
                             tone="emerald"
-                            onClick={() => quickReturn(loan)}
+                            onClick={() => setReturnChoiceFor(loan)}
                           />
                         )}
                         {(loan.status === 'Pending' || loan.status === 'Disetujui') && (
@@ -213,6 +245,36 @@ export function LoansPage() {
       </Card>
 
       <LoanFormModal open={modalState.open} loan={modalState.loan} onClose={() => setModalState({ open: false })} />
+
+      {returnChoiceFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="text-sm font-semibold text-slate-800">Setelah selesai, boom-nya kemana?</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              {returnChoiceFor.quantityUnits} unit dari <b>{returnChoiceFor.requestNumber}</b> — pilih salah satu untuk menandai selesai.
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                onClick={() => confirmReturn(returnChoiceFor, 'pos')}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:border-teal-300 hover:bg-teal-50"
+              >
+                Dikembalikan ke Pos
+                <div className="text-xs font-normal text-slate-400">Boom dibawa balik, masuk lagi ke stok pos asal.</div>
+              </button>
+              <button
+                onClick={() => confirmReturn(returnChoiceFor, 'standby')}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:border-amber-300 hover:bg-amber-50"
+              >
+                Standby di Lokasi Kerja
+                <div className="text-xs font-normal text-slate-400">Ditinggal di lokasi, siap diambil langsung untuk permintaan berikutnya.</div>
+              </button>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button size="sm" onClick={() => setReturnChoiceFor(null)}>Batal</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">

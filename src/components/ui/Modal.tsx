@@ -24,7 +24,6 @@ export function Modal({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 pt-10 backdrop-blur-sm"
-          onClick={(e) => e.target === e.currentTarget && onClose()}
         >
           <motion.div
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -37,9 +36,11 @@ export function Modal({
               <h2 className="text-base font-semibold text-slate-800">{title}</h2>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                title="Tutup"
+                aria-label="Tutup"
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
             <div className="max-h-[75vh] overflow-y-auto px-6 py-5">{children}</div>

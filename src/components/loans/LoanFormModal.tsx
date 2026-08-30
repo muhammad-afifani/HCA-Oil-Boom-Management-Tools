@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MapPin, CheckCircle2, Plus, X, AlertTriangle } from 'lucide-react'
+import { MapPin, CheckCircle2, Plus, X, AlertTriangle, PackageCheck, Clock } from 'lucide-react'
 import clsx from 'clsx'
 import { Modal } from '../ui/Modal'
 import { Field, inputClass } from '../ui/Field'
@@ -7,9 +7,9 @@ import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
 import { useStore } from '../../store/useStore'
 import type { LoanAllocation, LoanPriority, LoanRequest, LoanStatus } from '../../types'
-import { getNearestPosOptions } from '../../lib/nearestPos'
+import { getNearestPosOptions, getNearestStandbyOptions, getNearbyForecastSupply } from '../../lib/nearestPos'
 import { formatDistance } from '../../lib/geo'
-import { todayISO } from '../../lib/date'
+import { formatDateID, todayISO } from '../../lib/date'
 import { loanStatusLabel } from '../../lib/inventory'
 import { LocationFormModal } from '../master/LocationFormModal'
 import { PosSelectionMap } from './PosSelectionMap'
@@ -40,6 +40,7 @@ function emptyForm(defaultUnitLength: number, nextRequestNumber: string) {
     notes: '',
     approvedBy: '',
     actualReturnDate: '',
+    returnedTo: 'pos' as 'pos' | 'standby',
   }
 }
 
@@ -87,6 +88,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
         notes: loan.notes ?? '',
         approvedBy: loan.approvedBy ?? '',
         actualReturnDate: loan.actualReturnDate ?? '',
+        returnedTo: loan.returnedTo ?? 'pos',
       })
     } else {
       setForm(emptyForm(db.settings.defaultUnitLengthMeters, nextRequestNumber))
@@ -110,21 +112,40 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
     [db.locations, db.stockBatches, db.loans, form.siteLocationId, form.quantityUnits, loan?.id],
   )
 
+  const standbyOptions = useMemo(
+    () => getNearestStandbyOptions(db.locations, db.loans, form.siteLocationId || undefined, form.quantityUnits, loan?.id),
+    [db.locations, db.loans, form.siteLocationId, form.quantityUnits, loan?.id],
+  )
+
+  const forecastOptions = useMemo(
+    () => getNearbyForecastSupply(db.locations, db.loans, form.siteLocationId || undefined, 14).filter((f) => f.loan.id !== loan?.id),
+    [db.locations, db.loans, form.siteLocationId, loan?.id],
+  )
+
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }))
 
-  const primaryOpt = posOptions.find((o) => o.pos.id === form.sourcePosId)
-  const primaryAvailable = primaryOpt?.stock.availableUnits ?? 0
+  // Unified "who can supply this" list — pos stock and standby-at-site stock treated the same way.
+  const allChoices = useMemo(
+    () => [
+      ...posOptions.map((o) => ({ id: o.pos.id, name: o.pos.name, availableUnits: o.stock.availableUnits, kind: 'pos' as const })),
+      ...standbyOptions.map((o) => ({ id: o.site.id, name: `${o.site.name} (Standby)`, availableUnits: o.availableUnits, kind: 'standby' as const })),
+    ],
+    [posOptions, standbyOptions],
+  )
+
+  const primaryChoice = allChoices.find((c) => c.id === form.sourcePosId)
+  const primaryAvailable = primaryChoice?.availableUnits ?? 0
   const additionalTotal = form.additionalSources.reduce((s, a) => s + (Number(a.quantityUnits) || 0), 0)
   const totalAllocated = Math.min(primaryAvailable, form.quantityUnits) + additionalTotal
   const primaryShortfall = Math.max(0, form.quantityUnits - primaryAvailable)
   const showSplitHint = form.sourcePosId && primaryShortfall > 0
-  const otherPosOptions = posOptions.filter((o) => o.pos.id !== form.sourcePosId)
+  const otherChoices = allChoices.filter((c) => c.id !== form.sourcePosId)
 
   const addSplitRow = () => {
     const used = new Set(form.additionalSources.map((a) => a.posId))
-    const next = otherPosOptions.find((o) => !used.has(o.pos.id))
+    const next = otherChoices.find((o) => !used.has(o.id))
     if (!next) return
-    set('additionalSources', [...form.additionalSources, { posId: next.pos.id, quantityUnits: Math.min(primaryShortfall || 1, next.stock.availableUnits || 1) }])
+    set('additionalSources', [...form.additionalSources, { posId: next.id, quantityUnits: Math.min(primaryShortfall || 1, next.availableUnits || 1) }])
   }
   const updateSplitRow = (idx: number, patch: Partial<LoanAllocation>) => {
     set('additionalSources', form.additionalSources.map((a, i) => (i === idx ? { ...a, ...patch } : a)))
@@ -166,6 +187,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
       priority: form.priority,
       notes: form.notes.trim(),
       approvedBy: form.approvedBy.trim() || undefined,
+      returnedTo: form.status === 'Selesai' ? form.returnedTo : undefined,
     }
     if (loan) {
       updateLoan(loan.id, payload)
@@ -287,6 +309,34 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
             <input type="date" className={inputClass} value={form.actualReturnDate} onChange={(e) => set('actualReturnDate', e.target.value)} />
           </Field>
         )}
+        {form.status === 'Selesai' && (
+          <div className="md:col-span-2">
+            <Field label="Setelah selesai, boom-nya kemana?" hint="Standby = ditinggal di lokasi kerja, siap diambil langsung untuk permintaan berikutnya tanpa dibawa balik ke pos.">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => set('returnedTo', 'pos')}
+                  className={clsx(
+                    'flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                    form.returnedTo === 'pos' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
+                  )}
+                >
+                  Dikembalikan ke Pos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => set('returnedTo', 'standby')}
+                  className={clsx(
+                    'flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                    form.returnedTo === 'standby' ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
+                  )}
+                >
+                  Standby di Lokasi Kerja
+                </button>
+              </div>
+            </Field>
+          </div>
+        )}
 
         <div className="md:col-span-2">
           <Field label="Catatan">
@@ -297,10 +347,10 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
 
       <div className="mt-5">
         <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-slate-600">
-          <MapPin size={14} /> Pilih Pos Asal (diurutkan dari yang terdekat &amp; stok mencukupi)
+          <MapPin size={14} /> Pilih Sumber Boom — Pos atau Standby di Lokasi Kerja (diurutkan dari yang terdekat &amp; stok mencukupi)
         </div>
         {!form.siteLocationId && (
-          <p className="rounded-lg bg-slate-50 px-3 py-3 text-xs text-slate-400">Pilih lokasi kerja terlebih dahulu untuk melihat pos terdekat.</p>
+          <p className="rounded-lg bg-slate-50 px-3 py-3 text-xs text-slate-400">Pilih lokasi kerja terlebih dahulu untuk melihat sumber terdekat.</p>
         )}
         {form.siteLocationId && selectedSite && (
           <>
@@ -308,49 +358,115 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
               <PosSelectionMap
                 site={selectedSite}
                 posOptions={posOptions}
+                standbyOptions={standbyOptions}
                 primaryPosId={form.sourcePosId}
                 additionalPosIds={form.additionalSources.map((a) => a.posId)}
                 onSelectPrimary={(posId) => set('sourcePosId', posId)}
               />
               <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-600" /> Pos utama terpilih</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-600" /> Pos tambahan</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-600" /> Sumber utama terpilih</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-600" /> Sumber tambahan</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal-600" /> Pos lain</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" /> Standby di lokasi</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-500" /> Lokasi kerja</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {posOptions.map((opt) => (
-                <button
-                  type="button"
-                  key={opt.pos.id}
-                  onClick={() => set('sourcePosId', opt.pos.id)}
-                  className={clsx(
-                    'rounded-xl border p-3 text-left transition-colors',
-                    form.sourcePosId === opt.pos.id ? 'border-teal-500 bg-teal-50' : 'border-slate-200 bg-white hover:border-slate-300',
-                    !opt.sufficient && form.sourcePosId !== opt.pos.id && 'opacity-60',
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-800">{opt.pos.name}</span>
-                    {form.sourcePosId === opt.pos.id && <CheckCircle2 size={16} className="text-teal-600" />}
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
-                    <Badge tone="slate">{formatDistance(opt.distanceKm)}</Badge>
-                    <Badge tone={opt.sufficient ? 'green' : 'red'}>{opt.stock.availableUnits} unit tersedia</Badge>
-                    {!opt.sufficient && <span className="text-red-500">stok tidak cukup</span>}
-                  </div>
-                </button>
-              ))}
+            {standbyOptions.length > 0 && (
+              <div className="mb-3">
+                <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-amber-600">
+                  <PackageCheck size={13} /> Standby di Lokasi Kerja — siap ambil sekarang, tanpa perlu ke pos
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {standbyOptions.map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.site.id}
+                      onClick={() => set('sourcePosId', opt.site.id)}
+                      className={clsx(
+                        'rounded-xl border p-3 text-left transition-colors',
+                        form.sourcePosId === opt.site.id ? 'border-amber-500 bg-amber-50' : 'border-amber-200 bg-amber-50/40 hover:border-amber-300',
+                        !opt.sufficient && form.sourcePosId !== opt.site.id && 'opacity-60',
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-800">{opt.site.name}</span>
+                        {form.sourcePosId === opt.site.id && <CheckCircle2 size={16} className="text-amber-600" />}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <Badge tone="amber">Standby</Badge>
+                        <Badge tone="slate">{formatDistance(opt.distanceKm)}</Badge>
+                        <Badge tone={opt.sufficient ? 'green' : 'red'}>{opt.availableUnits} unit siap ambil</Badge>
+                        {!opt.sufficient && <span className="text-red-500">stok tidak cukup</span>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              {standbyOptions.length > 0 && (
+                <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-teal-600">
+                  <MapPin size={13} /> Stok di Pos Penyimpanan
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {posOptions.map((opt) => (
+                  <button
+                    type="button"
+                    key={opt.pos.id}
+                    onClick={() => set('sourcePosId', opt.pos.id)}
+                    className={clsx(
+                      'rounded-xl border p-3 text-left transition-colors',
+                      form.sourcePosId === opt.pos.id ? 'border-teal-500 bg-teal-50' : 'border-slate-200 bg-white hover:border-slate-300',
+                      !opt.sufficient && form.sourcePosId !== opt.pos.id && 'opacity-60',
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-800">{opt.pos.name}</span>
+                      {form.sourcePosId === opt.pos.id && <CheckCircle2 size={16} className="text-teal-600" />}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                      <Badge tone="slate">{formatDistance(opt.distanceKm)}</Badge>
+                      <Badge tone={opt.sufficient ? 'green' : 'red'}>{opt.stock.availableUnits} unit tersedia</Badge>
+                      {!opt.sufficient && <span className="text-red-500">stok tidak cukup</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {forecastOptions.length > 0 && (
+              <div className="mt-3">
+                <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  <Clock size={13} /> Perkiraan Akan Tersedia (belum bisa diambil, informasi saja)
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {forecastOptions.map((f) => (
+                    <div key={f.loan.id} className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-600">{f.site.name}</span>
+                        <Badge tone={f.daysUntil < 0 ? 'red' : f.daysUntil <= 2 ? 'amber' : 'slate'}>
+                          {f.daysUntil < 0 ? `Lewat ${Math.abs(f.daysUntil)}h` : f.daysUntil === 0 ? 'Hari ini' : `~${f.daysUntil} hari lagi`}
+                        </Badge>
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-500">
+                        {f.loan.quantityUnits} unit &middot; {f.loan.requestNumber} &middot; {f.loan.requesterName}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-slate-400">Rencana selesai {formatDateID(f.loan.endDate)} &middot; {formatDistance(f.distanceKm)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {showSplitHint && (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
                 <div className="flex items-start gap-2 text-xs text-amber-800">
                   <AlertTriangle size={15} className="mt-0.5 shrink-0" />
                   <div>
-                    Stok di <b>{primaryOpt?.pos.name}</b> tidak cukup (tersedia {primaryAvailable}, butuh {form.quantityUnits} unit).
+                    Stok di <b>{primaryChoice?.name}</b> tidak cukup (tersedia {primaryAvailable}, butuh {form.quantityUnits} unit).
                     Kekurangan {primaryShortfall} unit bisa diambil dari pos lain — <b>opsional</b>, hanya jika memang diperlukan.
                   </div>
                 </div>
@@ -358,7 +474,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
                 {form.additionalSources.length > 0 && (
                   <div className="mt-2 space-y-2">
                     {form.additionalSources.map((row, idx) => {
-                      const opt = otherPosOptions.find((o) => o.pos.id === row.posId)
+                      const opt = otherChoices.find((o) => o.id === row.posId)
                       return (
                         <div key={idx} className="flex items-center gap-2">
                           <select
@@ -366,14 +482,14 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
                             value={row.posId}
                             onChange={(e) => updateSplitRow(idx, { posId: e.target.value })}
                           >
-                            {otherPosOptions.map((o) => (
-                              <option key={o.pos.id} value={o.pos.id}>{o.pos.name} ({o.stock.availableUnits} unit)</option>
+                            {otherChoices.map((o) => (
+                              <option key={o.id} value={o.id}>{o.name} ({o.availableUnits} unit)</option>
                             ))}
                           </select>
                           <input
                             type="number"
                             min={0}
-                            max={opt?.stock.availableUnits}
+                            max={opt?.availableUnits}
                             className={`${inputClass} w-28 bg-white`}
                             value={row.quantityUnits}
                             onChange={(e) => updateSplitRow(idx, { quantityUnits: Number(e.target.value) })}
@@ -388,7 +504,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
                 )}
 
                 <div className="mt-2 flex items-center justify-between">
-                  <Button type="button" size="sm" onClick={addSplitRow} disabled={form.additionalSources.length >= otherPosOptions.length}>
+                  <Button type="button" size="sm" onClick={addSplitRow} disabled={form.additionalSources.length >= otherChoices.length}>
                     <Plus size={13} /> Tambah Pos Lain
                   </Button>
                   <span className={clsx('text-xs font-medium', totalAllocated >= form.quantityUnits ? 'text-emerald-600' : 'text-amber-600')}>

@@ -11,12 +11,14 @@ const toneHex: Record<MarkerTone, string> = {
   violet: '#7c3aed',
 }
 
-export function makeDivIcon(tone: MarkerTone, glyph: 'pos' | 'site', size = 30): L.DivIcon {
+export function makeDivIcon(tone: MarkerTone, glyph: 'pos' | 'site' | 'warehouse', size = 30): L.DivIcon {
   const color = toneHex[tone]
   const inner =
     glyph === 'pos'
       ? '<rect x="6" y="6" width="12" height="12" rx="2" fill="white"/>'
-      : '<circle cx="12" cy="12" r="4.5" fill="white"/>'
+      : glyph === 'warehouse'
+        ? '<path d="M5 12.5L12 7l7 5.5V18a1 1 0 0 1-1 1h-3v-4.5H9V19H6a1 1 0 0 1-1-1z" fill="white"/>'
+        : '<circle cx="12" cy="12" r="4.5" fill="white"/>'
   const html = `
     <div style="position:relative;width:${size}px;height:${size}px;">
       <svg width="${size}" height="${size}" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35))">
@@ -34,6 +36,7 @@ export function makeDivIcon(tone: MarkerTone, glyph: 'pos' | 'site', size = 30):
 }
 
 export const posIcon = makeDivIcon('teal', 'pos')
+export const warehouseIcon = makeDivIcon('violet', 'warehouse', 34)
 export const siteIdleIcon = makeDivIcon('slate', 'site')
 export const siteActiveIcon = makeDivIcon('blue', 'site')
 export const siteOverdueIcon = makeDivIcon('red', 'site')

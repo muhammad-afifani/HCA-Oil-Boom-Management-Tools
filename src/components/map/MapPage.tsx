@@ -4,11 +4,12 @@ import { useStore } from '../../store/useStore'
 import { Header } from '../layout/Header'
 import { Card } from '../ui/Card'
 import { Badge, loanStatusTone } from '../ui/Badge'
-import { posIcon, siteActiveIcon, siteIdleIcon, siteOverdueIcon, sitePendingIcon } from './icons'
+import { posIcon, siteActiveIcon, siteIdleIcon, siteOverdueIcon, sitePendingIcon, warehouseIcon } from './icons'
 import { effectiveLoanStatus, isLoanOpen, loanDaysRemaining, loanStatusLabel, summarizePosStock } from '../../lib/inventory'
+import { summarizeStandbyAtSite } from '../../lib/standby'
 import { formatDateID } from '../../lib/date'
 import type { MapLocation } from '../../types'
-import { Boxes, MapPinned, PackageCheck } from 'lucide-react'
+import { Boxes, MapPinned, PackageCheck, Warehouse, PauseCircle } from 'lucide-react'
 
 export function MapPage() {
   const db = useStore((s) => s.db)
@@ -83,11 +84,13 @@ export function MapPage() {
             posList.map((pos) => {
               const stock = summarizePosStock(db.stockBatches, db.loans, pos.id)
               return (
-                <Marker key={pos.id} position={[pos.lat, pos.lng]} icon={posIcon}>
+                <Marker key={pos.id} position={[pos.lat, pos.lng]} icon={pos.isWarehouse ? warehouseIcon : posIcon}>
                   <Popup>
                     <div className="p-3">
                       <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
-                        <Boxes size={15} className="text-teal-600" /> {pos.name}
+                        {pos.isWarehouse ? <Warehouse size={15} className="text-violet-600" /> : <Boxes size={15} className="text-teal-600" />}
+                        {pos.name}
+                        {pos.isWarehouse && <Badge tone="violet">Gudang Pusat</Badge>}
                       </div>
                       <div className="text-xs text-slate-400">{pos.code} &middot; {pos.area}</div>
                       <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
@@ -106,6 +109,19 @@ export function MapPage() {
                         {stock.rusakBeratUnits > 0 && <Badge tone="red">{stock.rusakBeratUnits} Rusak Berat</Badge>}
                         {stock.reservedUnits > 0 && <Badge tone="blue">{stock.reservedUnits} sedang dipinjam</Badge>}
                       </div>
+                      {(pos.otherItems?.length ?? 0) > 0 && (
+                        <div className="mt-2 border-t border-slate-100 pt-2">
+                          <div className="mb-1 text-[11px] font-semibold text-slate-500">Peralatan Lain</div>
+                          <div className="space-y-0.5">
+                            {pos.otherItems!.map((item) => (
+                              <div key={item.id} className="flex items-center justify-between text-[11px] text-slate-500">
+                                <span>{item.name}</span>
+                                <span className="font-medium text-slate-700">{item.quantity} {item.unit}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </Popup>
                 </Marker>
@@ -115,6 +131,7 @@ export function MapPage() {
           {showSites &&
             siteList.map((site) => {
               const loans = (openLoansBySite.get(site.id) ?? []).slice().sort((a, b) => (loanDaysRemaining(a) ?? 999999) - (loanDaysRemaining(b) ?? 999999))
+              const standby = summarizeStandbyAtSite(db.loans, site)
               return (
                 <Marker key={site.id} position={[site.lat, site.lng]} icon={iconForSite(site)}>
                   <Popup>
@@ -123,6 +140,11 @@ export function MapPage() {
                         <MapPinned size={15} className="text-slate-500" /> {site.name}
                       </div>
                       <div className="text-xs text-slate-400 capitalize">{site.type} &middot; {site.code} &middot; {site.area}</div>
+                      {standby.availableUnits > 0 && (
+                        <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-xs text-amber-700 ring-1 ring-inset ring-amber-200">
+                          <PauseCircle size={13} /> {standby.availableUnits} unit standby, siap diambil langsung
+                        </div>
+                      )}
                       {loans.length === 0 && (
                         <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-2 text-xs text-slate-500">
                           <PackageCheck size={13} /> Tidak ada boom yang sedang dipinjam di lokasi ini.

@@ -1,7 +1,8 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sidebar } from './components/layout/Sidebar'
 import { MobileNav } from './components/layout/MobileNav'
+import { useStore } from './store/useStore'
 
 const DashboardPage = lazy(() => import('./components/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const MapPage = lazy(() => import('./components/map/MapPage').then((m) => ({ default: m.MapPage })))
@@ -19,6 +20,22 @@ function PageFallback() {
 
 function App() {
   const [page, setPage] = useState<PageKey>('dashboard')
+  const logoDataUrl = useStore((s) => s.db.settings.logoDataUrl)
+  const companyName = useStore((s) => s.db.settings.companyName)
+
+  useEffect(() => {
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = logoDataUrl || `${import.meta.env.BASE_URL}favicon.svg`
+  }, [logoDataUrl])
+
+  useEffect(() => {
+    document.title = companyName ? `${companyName} - Oil Boom Tools` : 'Oil Boom Management Tools'
+  }, [companyName])
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100">

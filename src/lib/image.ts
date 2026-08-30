@@ -1,5 +1,5 @@
-/** Reads an image file, downscales it, and returns a JPEG data URL — keeps localStorage-friendly sizes. */
-export function resizeImageToDataUrl(file: File, maxDim = 1000, quality = 0.75): Promise<string> {
+/** Reads an image file, downscales it, and returns a data URL — keeps localStorage-friendly sizes. */
+export function resizeImageToDataUrl(file: File, maxDim = 1000, quality = 0.75, format: 'jpeg' | 'png' = 'jpeg'): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
@@ -20,7 +20,7 @@ export function resizeImageToDataUrl(file: File, maxDim = 1000, quality = 0.75):
           return
         }
         ctx.drawImage(img, 0, 0, width, height)
-        resolve(canvas.toDataURL('image/jpeg', quality))
+        resolve(format === 'png' ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', quality))
       }
       img.onerror = () => reject(new Error('Gagal memuat gambar'))
       img.src = String(reader.result)
@@ -28,4 +28,9 @@ export function resizeImageToDataUrl(file: File, maxDim = 1000, quality = 0.75):
     reader.onerror = () => reject(reader.error)
     reader.readAsDataURL(file)
   })
+}
+
+/** Logos usually need a transparent background kept intact — always exported as PNG. */
+export function resizeLogoToDataUrl(file: File, maxDim = 256): Promise<string> {
+  return resizeImageToDataUrl(file, maxDim, 1, 'png')
 }

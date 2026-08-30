@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { Field, inputClass } from '../ui/Field'
 import { Button } from '../ui/Button'
 import { useStore } from '../../store/useStore'
+import { makeId } from '../../lib/id'
 import { LocationMapPicker } from './LocationMapPicker'
-import type { LocationType, MapLocation } from '../../types'
+import type { LocationType, MapLocation, OtherStockItem } from '../../types'
 
 const SITE_TYPES: { value: LocationType; label: string }[] = [
   { value: 'sumur', label: 'Sumur' },
@@ -14,7 +16,7 @@ const SITE_TYPES: { value: LocationType; label: string }[] = [
 ]
 
 function empty(defaultType: LocationType, lat: number, lng: number) {
-  return { name: '', code: '', type: defaultType, area: '', lat, lng, description: '' }
+  return { name: '', code: '', type: defaultType, area: '', lat, lng, description: '', isWarehouse: false, otherItems: [] as OtherStockItem[] }
 }
 
 export function LocationFormModal({
@@ -48,6 +50,8 @@ export function LocationFormModal({
         lat: location.lat,
         lng: location.lng,
         description: location.description ?? '',
+        isWarehouse: location.isWarehouse ?? false,
+        otherItems: location.otherItems ?? [],
       })
     } else {
       setForm(empty(kind === 'pos' ? 'pos' : 'sumur', db.settings.centerLat, db.settings.centerLng))
@@ -62,6 +66,11 @@ export function LocationFormModal({
     [db.locations, location?.id],
   )
 
+  const addOtherItem = () => set('otherItems', [...form.otherItems, { id: makeId('item'), name: '', quantity: 1, unit: 'unit' }])
+  const updateOtherItem = (idx: number, patch: Partial<OtherStockItem>) =>
+    set('otherItems', form.otherItems.map((it, i) => (i === idx ? { ...it, ...patch } : it)))
+  const removeOtherItem = (idx: number) => set('otherItems', form.otherItems.filter((_, i) => i !== idx))
+
   const canSubmit = form.name.trim() && Number.isFinite(form.lat) && Number.isFinite(form.lng)
 
   const handleSubmit = () => {
@@ -74,6 +83,8 @@ export function LocationFormModal({
       lat: Number(form.lat),
       lng: Number(form.lng),
       description: form.description.trim() || undefined,
+      isWarehouse: kind === 'pos' ? form.isWarehouse : undefined,
+      otherItems: form.otherItems.filter((it) => it.name.trim()),
     }
     if (location) {
       updateLocation(location.id, payload)
@@ -128,6 +139,60 @@ export function LocationFormModal({
           <Field label="Deskripsi">
             <textarea className={inputClass} rows={2} value={form.description} onChange={(e) => set('description', e.target.value)} />
           </Field>
+
+          {kind === 'pos' && (
+            <>
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={form.isWarehouse}
+                  onChange={(e) => set('isWarehouse', e.target.checked)}
+                  className="accent-violet-600"
+                />
+                Tandai sebagai Gudang Pusat (Warehouse) — cadangan besar &amp; peralatan lain
+              </label>
+
+              {form.isWarehouse && (
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-600">Peralatan Lain (selain oil boom)</span>
+                    <Button type="button" size="sm" onClick={addOtherItem}><Plus size={13} /> Tambah Item</Button>
+                  </div>
+                  {form.otherItems.length === 0 && (
+                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-400">Belum ada item lain. Klik "Tambah Item" untuk mencatat, cth. skimmer, absorbent pad, dispersant.</p>
+                  )}
+                  <div className="space-y-2">
+                    {form.otherItems.map((item, idx) => (
+                      <div key={item.id} className="flex items-center gap-2">
+                        <input
+                          className={`${inputClass} flex-1`}
+                          value={item.name}
+                          onChange={(e) => updateOtherItem(idx, { name: e.target.value })}
+                          placeholder="cth. Skimmer Portable"
+                        />
+                        <input
+                          type="number"
+                          min={0}
+                          className={`${inputClass} w-20`}
+                          value={item.quantity}
+                          onChange={(e) => updateOtherItem(idx, { quantity: Number(e.target.value) })}
+                        />
+                        <input
+                          className={`${inputClass} w-20`}
+                          value={item.unit}
+                          onChange={(e) => updateOtherItem(idx, { unit: e.target.value })}
+                          placeholder="unit"
+                        />
+                        <button type="button" onClick={() => removeOtherItem(idx)} className="rounded-lg p-1.5 text-red-500 hover:bg-red-50">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div>
