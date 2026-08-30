@@ -96,7 +96,7 @@ export function PrintReportModal({ open, loan, onClose }: { open: boolean; loan?
                 <ReportRow label="Lokasi Kerja" value={site ? `${site.name} (${site.type})` : '-'} />
                 <ReportRow label="Koordinat Lokasi" value={site ? `${site.lat.toFixed(6)}, ${site.lng.toFixed(6)}` : '-'} />
                 {allocatedPos.map((a, i) => (
-                  <ReportRow key={i} label={i === 0 ? 'Pos Asal' : `Pos Tambahan ${i}`} value={a.pos ? `${a.pos.name} — ${a.quantityUnits} unit` : '-'} />
+                  <ReportRow key={i} label={i === 0 ? 'Floating Storage Asal' : `Floating Storage Tambahan ${i}`} value={a.pos ? `${a.pos.name} — ${a.quantityUnits} unit` : '-'} />
                 ))}
               </ReportSection>
 

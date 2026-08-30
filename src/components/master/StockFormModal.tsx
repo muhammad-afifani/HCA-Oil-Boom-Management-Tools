@@ -57,9 +57,9 @@ export function StockFormModal({ open, batch, onClose }: { open: boolean; batch?
   return (
     <Modal open={open} onClose={onClose} title={batch ? 'Edit Batch Stok' : 'Tambah Batch Stok'}>
       <div className="grid grid-cols-1 gap-4">
-        <Field label="Pos Penyimpanan" required>
+        <Field label="Floating Storage" required>
           <select className={inputClass} value={form.posId} onChange={(e) => set('posId', e.target.value)}>
-            {posList.length === 0 && <option value="">Belum ada pos, tambah pos terlebih dahulu</option>}
+            {posList.length === 0 && <option value="">Belum ada Floating Storage, tambahkan terlebih dahulu</option>}
             {posList.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </Field>

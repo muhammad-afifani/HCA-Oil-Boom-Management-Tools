@@ -99,13 +99,13 @@ export function LocationFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={location ? `Edit ${kind === 'pos' ? 'Pos' : 'Lokasi Kerja'}` : kind === 'pos' ? 'Tambah Pos Penyimpanan' : 'Tambah Lokasi Kerja'}
+      title={location ? `Edit ${kind === 'pos' ? 'Floating Storage' : 'Lokasi Kerja'}` : kind === 'pos' ? 'Tambah Floating Storage' : 'Tambah Lokasi Kerja'}
       wide
     >
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="grid grid-cols-1 gap-4">
           <Field label="Nama" required>
-            <input className={inputClass} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={kind === 'pos' ? 'cth. Pos Delta Utara' : 'cth. Sumur MHK-101'} />
+            <input className={inputClass} value={form.name} onChange={(e) => set('name', e.target.value)} placeholder={kind === 'pos' ? 'cth. Floating Storage Delta Utara' : 'cth. Sumur MHK-101'} />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Kode">

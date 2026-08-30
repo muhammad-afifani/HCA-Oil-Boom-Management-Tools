@@ -19,10 +19,10 @@ export function MasterDataPage() {
   const [tab, setTab] = useState<Tab>('pos')
   return (
     <div>
-      <Header title="Master Data" subtitle="Kelola pos penyimpanan, lokasi kerja, stok boom, dan pengaturan umum." />
+      <Header title="Master Data" subtitle="Kelola Floating Storage, lokasi kerja, stok boom, dan pengaturan umum." />
       <div className="mb-5 flex flex-wrap gap-2 border-b border-slate-200">
         {([
-          ['pos', 'Pos Penyimpanan'],
+          ['pos', 'Floating Storage'],
           ['site', 'Lokasi Kerja'],
           ['stock', 'Stok Boom'],
           ['settings', 'Pengaturan'],
@@ -61,7 +61,7 @@ function LocationsPanel({ kind }: { kind: 'pos' | 'site' }) {
     <div>
       <div className="mb-3 flex justify-end">
         <Button variant="primary" onClick={() => setModal({ open: true })}>
-          <Plus size={15} /> Tambah {kind === 'pos' ? 'Pos' : 'Lokasi Kerja'}
+          <Plus size={15} /> Tambah {kind === 'pos' ? 'Floating Storage' : 'Lokasi Kerja'}
         </Button>
       </div>
       <Card className="overflow-hidden">
@@ -121,7 +121,7 @@ function LocationsPanel({ kind }: { kind: 'pos' | 'site' }) {
 
       {confirmDelete && (
         <ConfirmDeleteDialog
-          text="Menghapus lokasi ini juga akan menghapus data stok terkait (jika pos). Lanjutkan?"
+          text="Menghapus lokasi ini juga akan menghapus data stok terkait (jika Floating Storage). Lanjutkan?"
           onCancel={() => setConfirmDelete(null)}
           onConfirm={() => {
             deleteLocation(confirmDelete)
@@ -152,7 +152,7 @@ function StockPanel() {
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
                 <th className="w-[240px] px-4 py-2.5 font-medium">Label Batch</th>
-                <th className="w-[170px] px-4 py-2.5 font-medium">Pos</th>
+                <th className="w-[170px] px-4 py-2.5 font-medium">Floating Storage</th>
                 <th className="w-[100px] px-4 py-2.5 font-medium">Jumlah</th>
                 <th className="w-[120px] px-4 py-2.5 font-medium">Panjang/Unit</th>
                 <th className="w-[140px] px-4 py-2.5 font-medium">Kondisi</th>

@@ -237,7 +237,7 @@ function PriorityRow({
           <span className="shrink-0 text-slate-300">dari</span>
           <span className="truncate">{pos?.name ?? '-'}</span>
           {(loan.additionalSources?.length ?? 0) > 0 && (
-            <span className="shrink-0 text-teal-600">+{loan.additionalSources!.length} pos lain</span>
+            <span className="shrink-0 text-teal-600">+{loan.additionalSources!.length} Floating Storage lain</span>
           )}
           <span className="shrink-0 text-slate-300">&middot;</span>
           <span className="shrink-0">{loan.quantityUnits} unit</span>

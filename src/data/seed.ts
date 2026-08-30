@@ -31,18 +31,18 @@ function loc(
   }
 }
 
-// --- Storage posts (Pos penyimpanan oil boom), scattered around the delta ---
-export const posUtama = loc('Pos Utama - Base Camp', 'pos', -0.84143, 117.27832, 'POS-01', 'Base Camp')
-export const posDeltaUtara = loc('Pos Delta Utara', 'pos', -0.78261, 117.30452, 'POS-02', 'Delta Utara')
-export const posDeltaSelatan = loc('Pos Delta Selatan', 'pos', -0.90874, 117.25190, 'POS-03', 'Delta Selatan')
-export const posDeltaTimur = loc('Pos Delta Timur', 'pos', -0.83015, 117.35664, 'POS-04', 'Delta Timur')
-export const posMuaraJawa = loc('Pos Muara Jawa', 'pos', -0.87652, 117.20073, 'POS-05', 'Muara Jawa')
+// --- Floating Storage points (storage for oil boom), scattered around the delta ---
+export const posUtama = loc('Floating Storage Utama - Base Camp', 'pos', -0.84143, 117.27832, 'POS-01', 'Base Camp')
+export const posDeltaUtara = loc('Floating Storage Delta Utara', 'pos', -0.78261, 117.30452, 'POS-02', 'Delta Utara')
+export const posDeltaSelatan = loc('Floating Storage Delta Selatan', 'pos', -0.90874, 117.25190, 'POS-03', 'Delta Selatan')
+export const posDeltaTimur = loc('Floating Storage Delta Timur', 'pos', -0.83015, 117.35664, 'POS-04', 'Delta Timur')
+export const posMuaraJawa = loc('Floating Storage Muara Jawa', 'pos', -0.87652, 117.20073, 'POS-05', 'Muara Jawa')
 
 // Central backup warehouse — large boom reserve plus other spill-response equipment (informational stock).
 export const osrWarehouse: MapLocation = {
   ...loc('OSR Warehouse - Gudang Pusat', 'pos', -0.85920, 117.26510, 'OSR-WH', 'Base Camp'),
   isWarehouse: true,
-  description: 'Gudang pusat backup — cadangan oil boom skala besar dan peralatan tanggap darurat tumpahan minyak lainnya, dipakai saat stok di pos-pos lapangan habis.',
+  description: 'Gudang pusat backup — cadangan oil boom skala besar dan peralatan tanggap darurat tumpahan minyak lainnya, dipakai saat stok di Floating Storage lapangan habis.',
   otherItems: [
     { id: makeId('item'), name: 'Skimmer Portable', quantity: 6, unit: 'unit' },
     { id: makeId('item'), name: 'Absorbent Pad', quantity: 800, unit: 'lembar' },
@@ -210,7 +210,7 @@ export const seedLoans: LoanRequest[] = [
     sourcePosId: posDeltaTimur.id,
     quantityUnits: 8,
     unitLengthMeters: 15,
-    // Contoh alokasi terpisah: Pos Delta Timur stoknya terbatas, jadi 2 unit diambil dari Pos Muara Jawa.
+    // Contoh alokasi terpisah: Floating Storage Delta Timur stoknya terbatas, jadi 2 unit diambil dari Floating Storage Muara Jawa.
     additionalSources: [{ posId: posMuaraJawa.id, quantityUnits: 2 }],
     requestDate: '2026-08-22',
     startDate: '2026-08-24',

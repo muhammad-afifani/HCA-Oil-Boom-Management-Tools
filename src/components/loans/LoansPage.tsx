@@ -13,6 +13,7 @@ import { getAllStandbySupply } from '../../lib/standby'
 import { formatDateID, planDurationDays, todayISO } from '../../lib/date'
 import { LoanFormModal } from './LoanFormModal'
 import { UsageTimeline } from './UsageTimeline'
+import { LoansMapPreview } from './LoansMapPreview'
 import type { LoanRequest, LoanStatus } from '../../types'
 
 type SortKey = 'endDate' | 'requestDate' | 'startDate'
@@ -78,7 +79,7 @@ export function LoansPage() {
 
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Sedang Digunakan" value={summary.inUse} suffix=" unit" icon={PackageOpen} tone="blue" />
-        <StatCard label="Tersedia (Pos + Standby)" value={summary.posAvailable + summary.standbyUnits} suffix=" unit" icon={Layers} tone="teal" />
+        <StatCard label="Tersedia (Floating Storage + Standby)" value={summary.posAvailable + summary.standbyUnits} suffix=" unit" icon={Layers} tone="teal" />
         <StatCard label="Standby di Lokasi Kerja" value={summary.standbyUnits} suffix=" unit" sub={`di ${summary.standbySites} lokasi`} icon={PauseCircle} tone="amber" />
         <StatCard label="Selesai Digunakan" value={summary.selesaiCount} suffix=" permintaan" icon={ListChecks} tone="slate" />
       </div>
@@ -88,45 +89,47 @@ export function LoansPage() {
         <UsageTimeline loans={db.loans} totalStockUnits={summary.totalStockUnits} />
       </Card>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari peminta, entity, no. permintaan..."
-            className={`${inputClass} w-72 pl-9`}
-          />
-        </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className={`${inputClass} w-auto`}>
-          {statusFilters.map((s) => (
-            <option key={s} value={s}>
-              {s === 'Semua' ? s : loanStatusLabel(s)}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() => setSortKey((k) => (k === 'endDate' ? 'requestDate' : k === 'requestDate' ? 'startDate' : 'endDate'))}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
-        >
-          <ArrowUpDown size={13} />
-          Urut: {sortKey === 'endDate' ? 'Tgl Selesai' : sortKey === 'requestDate' ? 'Tgl Request' : 'Tgl Mulai'}
-        </button>
-        <div className="flex-1" />
-        <Button variant="primary" onClick={() => setModalState({ open: true })}>
-          <Plus size={15} /> Permintaan Baru
-        </Button>
-      </div>
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="min-w-0">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari peminta, entity, no. permintaan..."
+                className={`${inputClass} w-72 pl-9`}
+              />
+            </div>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className={`${inputClass} w-auto`}>
+              {statusFilters.map((s) => (
+                <option key={s} value={s}>
+                  {s === 'Semua' ? s : loanStatusLabel(s)}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setSortKey((k) => (k === 'endDate' ? 'requestDate' : k === 'requestDate' ? 'startDate' : 'endDate'))}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <ArrowUpDown size={13} />
+              Urut: {sortKey === 'endDate' ? 'Tgl Selesai' : sortKey === 'requestDate' ? 'Tgl Request' : 'Tgl Mulai'}
+            </button>
+            <div className="flex-1" />
+            <Button variant="primary" onClick={() => setModalState({ open: true })}>
+              <Plus size={15} /> Permintaan Baru
+            </Button>
+          </div>
 
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1220px] table-fixed text-left text-sm">
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1220px] table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
                 <th className="w-[180px] px-4 py-2.5 font-medium">No / Peminta</th>
                 <th className="w-[190px] px-4 py-2.5 font-medium">Fungsi &amp; Pekerjaan</th>
                 <th className="w-[120px] px-4 py-2.5 font-medium">Lokasi Kerja</th>
-                <th className="w-[120px] px-4 py-2.5 font-medium">Pos Asal</th>
+                <th className="w-[140px] px-4 py-2.5 font-medium">Floating Storage Asal</th>
                 <th className="w-[80px] px-4 py-2.5 font-medium">Jumlah</th>
                 <th className="w-[200px] px-4 py-2.5 font-medium">Periode</th>
                 <th className="w-[110px] px-4 py-2.5 font-medium">Status</th>
@@ -158,7 +161,7 @@ export function LoansPage() {
                     <td className="px-4 py-3 text-slate-600">
                       <div className="truncate">{pos?.name ?? '-'}</div>
                       {(loan.additionalSources?.length ?? 0) > 0 && (
-                        <div className="text-xs text-teal-600">+{loan.additionalSources!.length} pos lain</div>
+                        <div className="text-xs text-teal-600">+{loan.additionalSources!.length} Floating Storage lain</div>
                       )}
                       {loan.status === 'Selesai' && loan.returnedTo === 'standby' && (
                         <div className="mt-1"><Badge tone="amber">Standby di lokasi</Badge></div>
@@ -240,9 +243,18 @@ export function LoansPage() {
                 </tr>
               )}
             </tbody>
-          </table>
+              </table>
+            </div>
+          </Card>
         </div>
-      </Card>
+
+        <Card className="overflow-hidden xl:sticky xl:top-4">
+          <div className="border-b border-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-600">Peta Lokasi</div>
+          <div style={{ height: 520 }}>
+            <LoansMapPreview />
+          </div>
+        </Card>
+      </div>
 
       <LoanFormModal open={modalState.open} loan={modalState.loan} onClose={() => setModalState({ open: false })} />
 
@@ -258,15 +270,15 @@ export function LoansPage() {
                 onClick={() => confirmReturn(returnChoiceFor, 'pos')}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:border-teal-300 hover:bg-teal-50"
               >
-                Dikembalikan ke Pos
-                <div className="text-xs font-normal text-slate-400">Boom dibawa balik, masuk lagi ke stok pos asal.</div>
+                Dikembalikan ke Floating Storage
+                <div className="text-xs font-normal text-slate-400">Boom dibawa kembali dan masuk ke stok Floating Storage asal.</div>
               </button>
               <button
                 onClick={() => confirmReturn(returnChoiceFor, 'standby')}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:border-amber-300 hover:bg-amber-50"
               >
                 Standby di Lokasi Kerja
-                <div className="text-xs font-normal text-slate-400">Ditinggal di lokasi, siap diambil langsung untuk permintaan berikutnya.</div>
+                <div className="text-xs font-normal text-slate-400">Ditinggal di lokasi kerja dan siap diambil langsung untuk permintaan berikutnya.</div>
               </button>
             </div>
             <div className="mt-3 flex justify-end">

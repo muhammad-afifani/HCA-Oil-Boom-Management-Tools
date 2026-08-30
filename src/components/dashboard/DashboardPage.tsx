@@ -46,7 +46,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (p: PageKey) => void
     <div>
       <Header
         title={`Dashboard - ${db.settings.siteName}`}
-        subtitle="Ringkasan stok oil boom, pos penyimpanan, dan status peminjaman saat ini."
+        subtitle="Ringkasan stok oil boom, Floating Storage, dan status peminjaman saat ini."
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -111,7 +111,7 @@ export function DashboardPage({ onNavigate }: { onNavigate: (p: PageKey) => void
 
         <Card>
           <CardHeader
-            title="Stok per Pos"
+            title="Stok per Floating Storage"
             subtitle="Ketersediaan boom di tiap titik penyimpanan"
             action={
               <Button size="sm" onClick={() => onNavigate('map')}>

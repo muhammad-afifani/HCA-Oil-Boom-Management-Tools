@@ -277,7 +277,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
               onChange={(e) => set('endDateTBC', e.target.checked)}
               className="accent-teal-600"
             />
-            Belum ada info / TBC (durasi belum pasti)
+            Tanggal selesai belum dapat dipastikan (TBC)
           </label>
         </Field>
 
@@ -311,7 +311,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
         )}
         {form.status === 'Selesai' && (
           <div className="md:col-span-2">
-            <Field label="Setelah selesai, boom-nya kemana?" hint="Standby = ditinggal di lokasi kerja, siap diambil langsung untuk permintaan berikutnya tanpa dibawa balik ke pos.">
+            <Field label="Setelah selesai, boom-nya kemana?" hint="Standby berarti boom ditinggal di lokasi kerja dan dapat langsung diambil untuk permintaan berikutnya tanpa dikembalikan ke Floating Storage terlebih dahulu.">
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -321,7 +321,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
                     form.returnedTo === 'pos' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
                   )}
                 >
-                  Dikembalikan ke Pos
+                  Dikembalikan ke Floating Storage
                 </button>
                 <button
                   type="button"
@@ -347,7 +347,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
 
       <div className="mt-5">
         <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-slate-600">
-          <MapPin size={14} /> Pilih Sumber Boom — Pos atau Standby di Lokasi Kerja (diurutkan dari yang terdekat &amp; stok mencukupi)
+          <MapPin size={14} /> Pilih Sumber Boom — Floating Storage atau Standby di Lokasi Kerja (diurutkan dari yang terdekat &amp; stok mencukupi)
         </div>
         {!form.siteLocationId && (
           <p className="rounded-lg bg-slate-50 px-3 py-3 text-xs text-slate-400">Pilih lokasi kerja terlebih dahulu untuk melihat sumber terdekat.</p>
@@ -366,7 +366,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
               <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-600" /> Sumber utama terpilih</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-600" /> Sumber tambahan</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal-600" /> Pos lain</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal-600" /> Floating Storage lain</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" /> Standby di lokasi</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-500" /> Lokasi kerja</span>
               </div>
@@ -375,7 +375,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
             {standbyOptions.length > 0 && (
               <div className="mb-3">
                 <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-amber-600">
-                  <PackageCheck size={13} /> Standby di Lokasi Kerja — siap ambil sekarang, tanpa perlu ke pos
+                  <PackageCheck size={13} /> Standby di Lokasi Kerja — siap diambil langsung tanpa perlu diambil dari Floating Storage
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {standbyOptions.map((opt) => (
@@ -408,7 +408,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
             <div>
               {standbyOptions.length > 0 && (
                 <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-teal-600">
-                  <MapPin size={13} /> Stok di Pos Penyimpanan
+                  <MapPin size={13} /> Stok di Floating Storage
                 </div>
               )}
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -440,7 +440,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
             {forecastOptions.length > 0 && (
               <div className="mt-3">
                 <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                  <Clock size={13} /> Perkiraan Akan Tersedia (belum bisa diambil, informasi saja)
+                  <Clock size={13} /> Perkiraan Akan Tersedia (belum dapat dipilih sebagai sumber)
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {forecastOptions.map((f) => (
@@ -467,7 +467,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
                   <AlertTriangle size={15} className="mt-0.5 shrink-0" />
                   <div>
                     Stok di <b>{primaryChoice?.name}</b> tidak cukup (tersedia {primaryAvailable}, butuh {form.quantityUnits} unit).
-                    Kekurangan {primaryShortfall} unit bisa diambil dari pos lain — <b>opsional</b>, hanya jika memang diperlukan.
+                    Kekurangan {primaryShortfall} unit dapat diambil dari Floating Storage lain — bersifat <b>opsional</b>, hanya jika diperlukan.
                   </div>
                 </div>
 
@@ -505,7 +505,7 @@ export function LoanFormModal({ open, loan, onClose }: { open: boolean; loan?: L
 
                 <div className="mt-2 flex items-center justify-between">
                   <Button type="button" size="sm" onClick={addSplitRow} disabled={form.additionalSources.length >= otherChoices.length}>
-                    <Plus size={13} /> Tambah Pos Lain
+                    <Plus size={13} /> Tambah Floating Storage Lain
                   </Button>
                   <span className={clsx('text-xs font-medium', totalAllocated >= form.quantityUnits ? 'text-emerald-600' : 'text-amber-600')}>
                     Teralokasi {totalAllocated} / {form.quantityUnits} unit

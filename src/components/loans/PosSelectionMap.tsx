@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { CircleMarker, MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { CircleMarker, MapContainer, Marker, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { makeDivIcon } from '../map/icons'
+import { BaseTileLayers } from '../map/BaseTileLayers'
 import type { PosOption, StandbyOption } from '../../lib/nearestPos'
 import type { MapLocation } from '../../types'
 
@@ -49,10 +50,7 @@ export function PosSelectionMap({
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200" style={{ height }}>
       <MapContainer center={[site.lat, site.lng]} zoom={11} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <BaseTileLayers />
         <FitToMarkers site={site} posOptions={posOptions} standbyOptions={standbyOptions} />
 
         <CircleMarker center={[site.lat, site.lng]} radius={5} pathOptions={{ color: '#64748b', fillColor: '#64748b', fillOpacity: 0.9, weight: 1.5 }}>

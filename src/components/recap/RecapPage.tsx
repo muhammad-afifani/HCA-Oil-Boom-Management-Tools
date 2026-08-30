@@ -79,7 +79,7 @@ export function RecapPage() {
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
                 <th className="w-[190px] px-4 py-2.5 font-medium">No / Peminta</th>
                 <th className="w-[160px] px-4 py-2.5 font-medium">Lokasi Kerja</th>
-                <th className="w-[150px] px-4 py-2.5 font-medium">Pos Asal</th>
+                <th className="w-[150px] px-4 py-2.5 font-medium">Floating Storage Asal</th>
                 <th className="w-[110px] px-4 py-2.5 font-medium">Status</th>
                 <th className="w-[120px] px-4 py-2.5 font-medium">Disetujui Oleh</th>
                 <th className="w-[170px] px-4 py-2.5 font-medium">Dokumentasi</th>

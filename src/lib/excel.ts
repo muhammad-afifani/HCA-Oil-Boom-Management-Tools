@@ -30,16 +30,25 @@ const LOC_COL: Record<(typeof LOC_HEADERS)[number], number> = Object.fromEntries
 // derive their column indices from this array so they can never drift out of sync.
 const LOAN_HEADERS = [
   'ID', 'No Permintaan', 'Nama Peminta', 'Entity/Perusahaan', 'Ext', 'Email', 'Fungsi Pekerjaan',
-  'Deskripsi Pekerjaan', 'Lokasi Kerja Kode', 'Lokasi Kerja Nama', 'Pos Asal Kode', 'Pos Asal Nama',
-  'Pos Tambahan (kode:jumlah, kode:jumlah, ...)', 'Jumlah Unit', 'Panjang per Unit (m)',
+  'Deskripsi Pekerjaan', 'Lokasi Kerja Kode', 'Lokasi Kerja Nama', 'Floating Storage Asal Kode', 'Floating Storage Asal Nama',
+  'Floating Storage Tambahan (kode:jumlah, kode:jumlah, ...)', 'Jumlah Unit', 'Panjang per Unit (m)',
   'Tgl Request', 'Tgl Mulai', 'Tgl Selesai Rencana', 'Selesai TBC (Ya/Tidak)', 'Tgl Kembali Aktual',
-  'Kembali Ke (Pos/Standby)', 'Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)', 'Prioritas',
+  'Kembali Ke (Floating Storage/Standby)', 'Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)', 'Prioritas',
   'Disetujui Oleh (ENV)', 'Catatan',
 ] as const
 
 const COL: Record<(typeof LOAN_HEADERS)[number], number> = Object.fromEntries(
   LOAN_HEADERS.map((h, i) => [h, i + 1]),
 ) as Record<(typeof LOAN_HEADERS)[number], number>
+
+// Single source of truth for the Stok Boom sheet's column order.
+const STOCK_HEADERS = [
+  'ID', 'Floating Storage Kode', 'Floating Storage Nama', 'Label Batch', 'Jumlah Unit',
+  'Panjang per Unit (m)', 'Kondisi (Baik/Rusak Ringan/Rusak Berat)', 'Catatan',
+] as const
+const STOCK_COL: Record<(typeof STOCK_HEADERS)[number], number> = Object.fromEntries(
+  STOCK_HEADERS.map((h, i) => [h, i + 1]),
+) as Record<(typeof STOCK_HEADERS)[number], number>
 
 function headerRow(sheet: ExcelJS.Worksheet, headers: readonly string[]) {
   const row = sheet.addRow(headers as string[])
@@ -70,7 +79,7 @@ function decodeAdditionalSources(raw: string, locations: MapLocation[], warnings
     const qty = Number(qtyRaw)
     const pos = locations.find((l) => (l.code && l.code.toLowerCase() === codeRaw?.toLowerCase()) || l.name.toLowerCase() === codeRaw?.toLowerCase())
     if (!pos || !Number.isFinite(qty) || qty <= 0) {
-      warnings.push(`Baris Peminjaman ${rowNumber}: pos tambahan "${part}" tidak valid/tidak ditemukan, diabaikan`)
+      warnings.push(`Baris Peminjaman ${rowNumber}: Floating Storage tambahan "${part}" tidak valid/tidak ditemukan, diabaikan`)
       continue
     }
     result.push({ posId: pos.id, quantityUnits: qty })
@@ -123,7 +132,7 @@ export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
 
   // --- Stok Boom ---
   const wsStock = wb.addWorksheet('Stok Boom')
-  headerRow(wsStock, ['ID', 'Pos Kode', 'Pos Nama', 'Label Batch', 'Jumlah Unit', 'Panjang per Unit (m)', 'Kondisi (Baik/Rusak Ringan/Rusak Berat)', 'Catatan'])
+  headerRow(wsStock, STOCK_HEADERS)
   for (const b of db.stockBatches) {
     const pos = db.locations.find((l) => l.id === b.posId)
     wsStock.addRow([b.id, pos?.code ?? '', pos?.name ?? '', b.label, b.quantityUnits, b.unitLengthMeters, b.condition, b.notes ?? ''])
@@ -147,9 +156,9 @@ export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
     row[COL['Deskripsi Pekerjaan'] - 1] = l.workDescription
     row[COL['Lokasi Kerja Kode'] - 1] = site?.code ?? ''
     row[COL['Lokasi Kerja Nama'] - 1] = site?.name ?? ''
-    row[COL['Pos Asal Kode'] - 1] = pos?.code ?? ''
-    row[COL['Pos Asal Nama'] - 1] = pos?.name ?? ''
-    row[COL['Pos Tambahan (kode:jumlah, kode:jumlah, ...)'] - 1] = encodeAdditionalSources(l, db.locations)
+    row[COL['Floating Storage Asal Kode'] - 1] = pos?.code ?? ''
+    row[COL['Floating Storage Asal Nama'] - 1] = pos?.name ?? ''
+    row[COL['Floating Storage Tambahan (kode:jumlah, kode:jumlah, ...)'] - 1] = encodeAdditionalSources(l, db.locations)
     row[COL['Jumlah Unit'] - 1] = l.quantityUnits
     row[COL['Panjang per Unit (m)'] - 1] = l.unitLengthMeters
     row[COL['Tgl Request'] - 1] = l.requestDate
@@ -157,7 +166,7 @@ export async function exportDatabaseToExcel(db: AppDatabase): Promise<void> {
     row[COL['Tgl Selesai Rencana'] - 1] = l.endDateTBC ? '' : l.endDate
     row[COL['Selesai TBC (Ya/Tidak)'] - 1] = l.endDateTBC ? 'Ya' : 'Tidak'
     row[COL['Tgl Kembali Aktual'] - 1] = l.actualReturnDate ?? ''
-    row[COL['Kembali Ke (Pos/Standby)'] - 1] = l.returnedTo === 'standby' ? 'Standby' : l.status === 'Selesai' ? 'Pos' : ''
+    row[COL['Kembali Ke (Floating Storage/Standby)'] - 1] = l.returnedTo === 'standby' ? 'Standby' : l.status === 'Selesai' ? 'Floating Storage' : ''
     row[COL['Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)'] - 1] = loanStatusLabel(l.status)
     row[COL['Prioritas'] - 1] = l.priority
     row[COL['Disetujui Oleh (ENV)'] - 1] = l.approvedBy ?? ''
@@ -248,21 +257,21 @@ export async function importDatabaseFromExcel(file: File, current: AppDatabase):
   if (wsStock) {
     wsStock.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return
-      const label = cellStr(row, 4)
-      if (!label && !cellStr(row, 2) && !cellStr(row, 3)) return
-      const posId = findLocId(cellStr(row, 2), cellStr(row, 3), rowNumber, 'Stok Boom')
+      const label = cellStr(row, STOCK_COL['Label Batch'])
+      if (!label && !cellStr(row, STOCK_COL['Floating Storage Kode']) && !cellStr(row, STOCK_COL['Floating Storage Nama'])) return
+      const posId = findLocId(cellStr(row, STOCK_COL['Floating Storage Kode']), cellStr(row, STOCK_COL['Floating Storage Nama']), rowNumber, 'Stok Boom')
       if (!posId) return
-      const conditionRaw = cellStr(row, 7) as BoomCondition
+      const conditionRaw = cellStr(row, STOCK_COL['Kondisi (Baik/Rusak Ringan/Rusak Berat)']) as BoomCondition
       const condition = CONDITIONS.includes(conditionRaw) ? conditionRaw : 'Baik'
       const now = new Date().toISOString()
       stockBatches.push({
-        id: cellStr(row, 1) || makeId('stk'),
+        id: cellStr(row, STOCK_COL['ID']) || makeId('stk'),
         posId,
         label: label || 'Batch',
-        quantityUnits: cellNum(row, 5),
-        unitLengthMeters: cellNum(row, 6) || settings.defaultUnitLengthMeters,
+        quantityUnits: cellNum(row, STOCK_COL['Jumlah Unit']),
+        unitLengthMeters: cellNum(row, STOCK_COL['Panjang per Unit (m)']) || settings.defaultUnitLengthMeters,
         condition,
-        notes: cellStr(row, 8) || undefined,
+        notes: cellStr(row, STOCK_COL['Catatan']) || undefined,
         createdAt: now,
         updatedAt: now,
       })
@@ -277,15 +286,16 @@ export async function importDatabaseFromExcel(file: File, current: AppDatabase):
       const requestNumber = cellStr(row, COL['No Permintaan'])
       if (!requestNumber) return
       const siteId = findLocId(cellStr(row, COL['Lokasi Kerja Kode']), cellStr(row, COL['Lokasi Kerja Nama']), rowNumber, 'Peminjaman (lokasi kerja)')
-      const posId = findLocId(cellStr(row, COL['Pos Asal Kode']), cellStr(row, COL['Pos Asal Nama']), rowNumber, 'Peminjaman (pos asal)')
+      const posId = findLocId(cellStr(row, COL['Floating Storage Asal Kode']), cellStr(row, COL['Floating Storage Asal Nama']), rowNumber, 'Peminjaman (Floating Storage asal)')
       if (!siteId || !posId) return
       const statusRaw = cellStr(row, COL['Status (Pending/Disetujui/Sedang Dipakai/Selesai/Dibatalkan)'])
       const status = STATUS_LABEL_TO_VALUE[statusRaw.toLowerCase()] ?? 'Pending'
       const priorityRaw = cellStr(row, COL['Prioritas']) as LoanPriority
       const priority = PRIORITIES.includes(priorityRaw) ? priorityRaw : 'Normal'
       const endDateTBC = cellStr(row, COL['Selesai TBC (Ya/Tidak)']).toLowerCase().startsWith('y')
-      const returnedToRaw = cellStr(row, COL['Kembali Ke (Pos/Standby)']).toLowerCase()
-      const returnedTo = returnedToRaw === 'standby' ? 'standby' : returnedToRaw === 'pos' ? 'pos' : undefined
+      // Accepts both "Floating Storage" (current label) and the older "Pos" value for backward compatibility with earlier exports.
+      const returnedToRaw = cellStr(row, COL['Kembali Ke (Floating Storage/Standby)']).toLowerCase()
+      const returnedTo = returnedToRaw === 'standby' ? 'standby' : returnedToRaw === 'pos' || returnedToRaw.startsWith('floating') ? 'pos' : undefined
       const now = new Date().toISOString()
       loans.push({
         id: cellStr(row, COL['ID']) || makeId('loan'),
@@ -300,7 +310,7 @@ export async function importDatabaseFromExcel(file: File, current: AppDatabase):
         sourcePosId: posId,
         quantityUnits: cellNum(row, COL['Jumlah Unit']),
         unitLengthMeters: cellNum(row, COL['Panjang per Unit (m)']) || settings.defaultUnitLengthMeters,
-        additionalSources: decodeAdditionalSources(cellStr(row, COL['Pos Tambahan (kode:jumlah, kode:jumlah, ...)']), locations, warnings, rowNumber),
+        additionalSources: decodeAdditionalSources(cellStr(row, COL['Floating Storage Tambahan (kode:jumlah, kode:jumlah, ...)']), locations, warnings, rowNumber),
         requestDate: cellStr(row, COL['Tgl Request']),
         startDate: cellStr(row, COL['Tgl Mulai']),
         endDate: endDateTBC ? '' : cellStr(row, COL['Tgl Selesai Rencana']),
@@ -325,12 +335,12 @@ export async function downloadExcelTemplate(): Promise<void> {
   const wb = new ExcelJS.Workbook()
   const wsLoc = wb.addWorksheet('Lokasi')
   headerRow(wsLoc, LOC_HEADERS)
-  wsLoc.addRow(['', 'Pos Contoh', 'POS-99', 'pos', 'Area X', -0.8414, 117.2783, 'Contoh baris, silakan hapus', 'Tidak', ''])
+  wsLoc.addRow(['', 'Floating Storage Contoh', 'POS-99', 'pos', 'Area X', -0.8414, 117.2783, 'Contoh baris, silakan hapus', 'Tidak', ''])
   wsLoc.columns.forEach((c) => (c.width = 20))
 
   const wsStock = wb.addWorksheet('Stok Boom')
-  headerRow(wsStock, ['ID', 'Pos Kode', 'Pos Nama', 'Label Batch', 'Jumlah Unit', 'Panjang per Unit (m)', 'Kondisi (Baik/Rusak Ringan/Rusak Berat)', 'Catatan'])
-  wsStock.addRow(['', 'POS-99', 'Pos Contoh', 'Boom Kuning 15m', 10, 15, 'Baik', ''])
+  headerRow(wsStock, STOCK_HEADERS)
+  wsStock.addRow(['', 'POS-99', 'Floating Storage Contoh', 'Boom Kuning 15m', 10, 15, 'Baik', ''])
   wsStock.columns.forEach((c) => (c.width = 20))
 
   const wsLoan = wb.addWorksheet('Peminjaman')

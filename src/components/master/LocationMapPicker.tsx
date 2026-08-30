@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { CircleMarker, MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
+import { CircleMarker, MapContainer, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import { MousePointerClick } from 'lucide-react'
 import { pickerIcon } from '../map/icons'
+import { BaseTileLayers } from '../map/BaseTileLayers'
 import type { MapLocation } from '../../types'
 
 function ClickToPlace({ onPick }: { onPick: (lat: number, lng: number) => void }) {
@@ -46,10 +47,7 @@ export function LocationMapPicker({
       </div>
       <div className="overflow-hidden rounded-xl border border-slate-200" style={{ height }}>
         <MapContainer center={[safeLat, safeLng]} zoom={12} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <BaseTileLayers />
           <ClickToPlace onPick={onChange} />
           <Recenter lat={safeLat} lng={safeLng} />
 
@@ -66,7 +64,7 @@ export function LocationMapPicker({
               }}
             >
               <Tooltip direction="top" offset={[0, -4]}>
-                {loc.name} {loc.type === 'pos' ? '(Pos)' : ''}
+                {loc.name} {loc.type === 'pos' ? '(Floating Storage)' : ''}
               </Tooltip>
             </CircleMarker>
           ))}
@@ -85,7 +83,7 @@ export function LocationMapPicker({
         </MapContainer>
       </div>
       <div className="mt-1.5 flex items-center gap-2 text-[11px] text-slate-400">
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal-600" /> Pos</span>
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-teal-600" /> Floating Storage</span>
         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-500" /> Lokasi kerja lain</span>
         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-600" /> Titik terpilih</span>
       </div>

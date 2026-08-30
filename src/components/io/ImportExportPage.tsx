@@ -132,7 +132,7 @@ export function ImportExportPage() {
               <FileSpreadsheet size={14} /> Download Template Kosong
             </Button>
             <p className="text-xs text-slate-400">
-              Sheet: <b>Lokasi</b>, <b>Stok Boom</b>, <b>Peminjaman</b>, <b>Pengaturan</b>. Kolom "Kode" pada Lokasi dipakai untuk mencocokkan referensi Pos/Lokasi Kerja di sheet lain saat import. Foto dokumentasi pemasangan tidak ikut di Excel (ukurannya terlalu besar untuk sel) — gunakan backup JSON untuk itu.
+              Sheet: <b>Lokasi</b>, <b>Stok Boom</b>, <b>Peminjaman</b>, <b>Pengaturan</b>. Kolom "Kode" pada Lokasi dipakai untuk mencocokkan referensi Floating Storage/Lokasi Kerja di sheet lain saat import. Foto dokumentasi pemasangan tidak ikut di Excel (ukurannya terlalu besar untuk sel) — gunakan backup JSON untuk itu.
             </p>
           </div>
         </Card>
@@ -144,7 +144,7 @@ export function ImportExportPage() {
           <SummaryStat label="Lokasi" value={db.locations.length} />
           <SummaryStat label="Batch Stok" value={db.stockBatches.length} />
           <SummaryStat label="Peminjaman" value={db.loans.length} />
-          <SummaryStat label="Pos" value={db.locations.filter((l) => l.type === 'pos').length} />
+          <SummaryStat label="Floating Storage" value={db.locations.filter((l) => l.type === 'pos').length} />
         </div>
       </Card>
 
@@ -195,7 +195,7 @@ export function ImportExportPage() {
                   <option value="sumur">Sumur</option>
                   <option value="platform">Platform</option>
                   <option value="cluster">Cluster</option>
-                  <option value="pos">Pos Penyimpanan</option>
+                  <option value="pos">Floating Storage</option>
                   <option value="lainnya">Lainnya</option>
                 </select>
               </Field>

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle, LayersControl } from 'react-leaflet'
+import { MapContainer, Marker, Popup, Circle } from 'react-leaflet'
 import { useStore } from '../../store/useStore'
 import { Header } from '../layout/Header'
 import { Card } from '../ui/Card'
 import { Badge, loanStatusTone } from '../ui/Badge'
+import { BaseTileLayers } from './BaseTileLayers'
 import { posIcon, siteActiveIcon, siteIdleIcon, siteOverdueIcon, sitePendingIcon, warehouseIcon } from './icons'
 import { effectiveLoanStatus, isLoanOpen, loanDaysRemaining, loanStatusLabel, summarizePosStock } from '../../lib/inventory'
 import { summarizeStandbyAtSite } from '../../lib/standby'
@@ -41,12 +42,12 @@ export function MapPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <Header title="Peta Lokasi Oil Boom" subtitle="Titik pos penyimpanan dan lokasi kerja (sumur/platform/cluster) di area HCA Site." />
+      <Header title="Peta Lokasi Oil Boom" subtitle="Titik Floating Storage dan lokasi kerja (sumur/platform/cluster) di area HCA Site." />
 
       <div className="mb-3 flex flex-wrap items-center gap-4">
         <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={showPos} onChange={(e) => setShowPos(e.target.checked)} className="accent-teal-600" />
-          <span className="flex h-3 w-3 rounded-full bg-teal-600" /> Pos Penyimpanan ({posList.length})
+          <span className="flex h-3 w-3 rounded-full bg-teal-600" /> Floating Storage ({posList.length})
         </label>
         <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={showSites} onChange={(e) => setShowSites(e.target.checked)} className="accent-teal-600" />
@@ -59,20 +60,7 @@ export function MapPage() {
 
       <Card className="h-[520px] overflow-hidden md:h-[640px]">
         <MapContainer center={center} zoom={11} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
-          <LayersControl position="topright">
-            <LayersControl.BaseLayer checked name="Peta Jalan (OSM)">
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-            </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer name="Citra Satelit (Esri)">
-              <TileLayer
-                attribution="Tiles &copy; Esri"
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              />
-            </LayersControl.BaseLayer>
-          </LayersControl>
+          <BaseTileLayers />
 
           <Circle
             center={center}
@@ -163,7 +151,7 @@ export function MapPage() {
                               </div>
                               <div className="text-slate-500">{loan.entity} &middot; Ext {loan.ext || '-'}</div>
                               <div className="text-slate-500">Fungsi: {loan.boomFunction}</div>
-                              <div className="text-slate-500">{loan.quantityUnits} unit dari {pos?.name}{(loan.additionalSources?.length ?? 0) > 0 ? ` +${loan.additionalSources!.length} pos lain` : ''}</div>
+                              <div className="text-slate-500">{loan.quantityUnits} unit dari {pos?.name}{(loan.additionalSources?.length ?? 0) > 0 ? ` +${loan.additionalSources!.length} Floating Storage lain` : ''}</div>
                               <div className="mt-1 flex items-center justify-between text-slate-400">
                                 <span>{formatDateID(loan.startDate)} - {loan.endDateTBC || !loan.endDate ? 'TBC' : formatDateID(loan.endDate)}</span>
                                 <span className={days !== null && days < 0 ? 'font-semibold text-red-600' : ''}>
