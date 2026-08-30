@@ -84,46 +84,53 @@ export function LoansPage() {
         <StatCard label="Selesai Digunakan" value={summary.selesaiCount} suffix=" permintaan" icon={ListChecks} tone="slate" />
       </div>
 
-      <Card className="mb-5 overflow-x-auto p-4">
-        <div className="mb-2 text-xs font-semibold text-slate-600">Kepadatan Pemakaian Boom — {`${summary.totalStockUnits}`} unit dalam 42 hari ke depan</div>
-        <UsageTimeline loans={db.loans} totalStockUnits={summary.totalStockUnits} />
-      </Card>
+      <div className="mb-5 grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <Card className="overflow-x-auto p-4">
+          <div className="mb-2 text-xs font-semibold text-slate-600">Kepadatan Pemakaian Boom — {`${summary.totalStockUnits}`} unit dalam 42 hari ke depan</div>
+          <UsageTimeline loans={db.loans} totalStockUnits={summary.totalStockUnits} />
+        </Card>
 
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari peminta, entity, no. permintaan..."
-                className={`${inputClass} w-72 pl-9`}
-              />
-            </div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className={`${inputClass} w-auto`}>
-              {statusFilters.map((s) => (
-                <option key={s} value={s}>
-                  {s === 'Semua' ? s : loanStatusLabel(s)}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => setSortKey((k) => (k === 'endDate' ? 'requestDate' : k === 'requestDate' ? 'startDate' : 'endDate'))}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
-            >
-              <ArrowUpDown size={13} />
-              Urut: {sortKey === 'endDate' ? 'Tgl Selesai' : sortKey === 'requestDate' ? 'Tgl Request' : 'Tgl Mulai'}
-            </button>
-            <div className="flex-1" />
-            <Button variant="primary" onClick={() => setModalState({ open: true })}>
-              <Plus size={15} /> Permintaan Baru
-            </Button>
+        <Card className="overflow-hidden">
+          <div className="border-b border-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-600">Peta Lokasi</div>
+          <div style={{ height: 420 }}>
+            <LoansMapPreview />
           </div>
+        </Card>
+      </div>
 
-          <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1220px] table-fixed text-left text-sm">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari peminta, entity, no. permintaan..."
+            className={`${inputClass} w-72 pl-9`}
+          />
+        </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className={`${inputClass} w-auto`}>
+          {statusFilters.map((s) => (
+            <option key={s} value={s}>
+              {s === 'Semua' ? s : loanStatusLabel(s)}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => setSortKey((k) => (k === 'endDate' ? 'requestDate' : k === 'requestDate' ? 'startDate' : 'endDate'))}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+        >
+          <ArrowUpDown size={13} />
+          Urut: {sortKey === 'endDate' ? 'Tgl Selesai' : sortKey === 'requestDate' ? 'Tgl Request' : 'Tgl Mulai'}
+        </button>
+        <div className="flex-1" />
+        <Button variant="primary" onClick={() => setModalState({ open: true })}>
+          <Plus size={15} /> Permintaan Baru
+        </Button>
+      </div>
+
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1220px] table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-xs uppercase tracking-wide text-slate-400">
                 <th className="w-[180px] px-4 py-2.5 font-medium">No / Peminta</th>
@@ -243,18 +250,9 @@ export function LoansPage() {
                 </tr>
               )}
             </tbody>
-              </table>
-            </div>
-          </Card>
+          </table>
         </div>
-
-        <Card className="overflow-hidden xl:sticky xl:top-4">
-          <div className="border-b border-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-600">Peta Lokasi</div>
-          <div style={{ height: 520 }}>
-            <LoansMapPreview />
-          </div>
-        </Card>
-      </div>
+      </Card>
 
       <LoanFormModal open={modalState.open} loan={modalState.loan} onClose={() => setModalState({ open: false })} />
 
