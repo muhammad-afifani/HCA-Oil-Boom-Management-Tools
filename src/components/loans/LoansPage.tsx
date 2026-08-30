@@ -59,7 +59,9 @@ export function LoansPage() {
   useEffect(() => {
     const el = toolbarRef.current
     if (!el) return
-    const ro = new ResizeObserver((entries) => setToolbarHeight(entries[0].contentRect.height))
+    // getBoundingClientRect (not ResizeObserver's contentRect, which excludes padding) gives the
+    // toolbar's true rendered height so the header sits flush below it with no overlap or gap.
+    const ro = new ResizeObserver(() => setToolbarHeight(el.getBoundingClientRect().height))
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
